@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2f4a3c">
+  <title>Matgo</title>
+  <link rel="icon" href="data:,">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <strong class="brand">Matgo</strong>
+    <span id="score-line" class="score-line"></span>
+    <label class="hint-toggle" title="Spielbare Karten hervorheben">
+      <input type="checkbox" id="hints"> <span>Hinweise</span>
+    </label>
+    <label class="hint-toggle" title="Effektgeräusche">
+      <input type="checkbox" id="sound"> <span>Ton</span>
+    </label>
+    <a class="rules-link" href="regeln.de.html" target="_blank" rel="noopener">Regeln</a>
+    <button id="leave-btn" class="leave-btn" hidden>Beenden</button>
+  </header>
+  <main id="app" aria-live="polite"></main>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script src="vendor/peerjs.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
