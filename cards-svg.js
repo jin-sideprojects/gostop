@@ -144,12 +144,12 @@ const SPECIAL = {
   'm08-gwang': () => `${BASE[8]()}${c(30, 22, 13, '#fff6dc')}`,
   'm11-gwang': () => `${BASE[11](0)}${phoenix()}`,
   'm12-gwang': () => `${p('M0 0 H60 V78 H0Z', '#2a2a2a')}${line('M48 0 Q38 30 46 78', '#5a5a5a', 2)}${rainMan()}`,
-  'm02-yeol': () => `${BASE[2](0)}${warbler(30, 34)}`,
-  'm04-yeol': () => `${BASE[4](0)}${c(44, 48, 10, RED)}${cuckoo(28, 52)}`,
+  'm02-yeol': () => `${BASE[2](0)}<g class="bird">${warbler(30, 34)}</g>`,
+  'm04-yeol': () => `${BASE[4](0)}${c(44, 48, 10, RED)}<g class="bird">${cuckoo(28, 52)}</g>`,
   'm05-yeol': () => `${BASE[5](0)}${bridge()}`,
   'm06-yeol': () => `${BASE[6](0)}${butterfly(16, 18, 1)}${butterfly(46, 24, 0.8)}`,
   'm07-yeol': () => `${BASE[7](0)}${boar()}`,
-  'm08-yeol': () => `${BASE[8]()}${goose(14, 14, 1.15)}${goose(42, 9, 1.2)}${goose(27, 23, 1.3)}`,
+  'm08-yeol': () => `${BASE[8]()}<g class="bird">${goose(14, 14, 1.15)}${goose(42, 9, 1.2)}${goose(27, 23, 1.3)}</g>`,
   'm09-yeol': () => `${BASE[9](1)}${sakeCup()}`,
   'm10-yeol': () => `${BASE[10](0)}${deer()}`,
   'm12-yeol': () => `${BASE[12](1)}${swallow(30, 40)}`,
@@ -278,10 +278,18 @@ export function cardSvg(id) {
   const info = cardInfo(id);
   const kind = info.bonus ? `${T.bonusName} +${info.piValue}` : info.piValue === 2 ? `2× ${T.kindShort.pi}` : T.kindShort[info.kind];
   const clip = `clip-${id}-${++clipSeq}`; // eindeutig: dieselbe Karte kann mehrfach im Bild sein
-  return `<svg viewBox="0 0 60 92" class="card-svg" role="img" aria-label="${cardLabel(id)}">
-<defs><clipPath id="${clip}"><rect x="1" y="1" width="58" height="78" rx="4.5"/></clipPath></defs>
+  // Hervorhebung: Lichter glänzen golden, die drei Godori-Vögel leuchten blau und hüpfen
+  const fx = info.kind === 'gwang' ? ' k-gwang' : info.godori ? ' k-bird' : '';
+  const shine =
+    info.kind === 'gwang'
+      ? `<linearGradient id="${clip}-s" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff8d8" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>`
+      : '';
+  const sweep = shine ? `<g class="shine"><rect x="-10" y="-6" width="20" height="96" fill="url(#${clip}-s)" transform="skewX(-18)"/></g>` : '';
+  const delay = fx ? ` style="--d:${(-0.9 * info.month).toFixed(1)}s"` : ''; // nicht alle im Gleichtakt
+  return `<svg viewBox="0 0 60 92" class="card-svg${fx}"${delay} role="img" aria-label="${cardLabel(id)}">
+<defs><clipPath id="${clip}"><rect x="1" y="1" width="58" height="78" rx="4.5"/></clipPath>${shine}</defs>
 <rect x="1" y="1" width="58" height="90" rx="5" fill="${FACE}" stroke="#a89c82" stroke-width="1"/>
-<g clip-path="url(#${clip})">${art(info)}</g>
+<g clip-path="url(#${clip})">${art(info)}${sweep}</g>
 ${info.bonus ? '' : kindMark(info)}
 ${info.bonus ? '' : `<circle cx="9" cy="10" r="7.5" fill="rgba(255,250,240,.88)"/>
 <text x="9" y="14" text-anchor="middle" font-size="11" font-weight="700" fill="${INK}" font-family="Georgia, 'Times New Roman', serif">${info.month}</text>`}

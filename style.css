@@ -78,32 +78,43 @@ button.card.hint {
 .backs { display: flex; }
 .backs .card { width: 18px; margin-right: -6px; }
 
-.captured { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.group { background: rgba(0, 0, 0, 0.16); border-radius: var(--radius); padding: 4px; min-height: 52px; }
+/* Kartengrößen: gesammelte Karten (--cap), Tisch (--floor), Hand (höchstens --hand) */
+:root { --cap: 30px; --cap-compact: 25px; --floor: 54px; --hand: 80px; }
+@media (min-width: 700px) { :root { --cap: 42px; --cap-compact: 34px; --floor: 80px; --hand: 74px; } }
+.opponent.compact { --cap: var(--cap-compact); }
+
+/* Spreu hat die meisten Karten und bekommt am meisten Platz */
+.captured { display: grid; grid-template-columns: 0.8fr 1fr 1fr 1.6fr; gap: 6px; }
+.group { background: rgba(0, 0, 0, 0.16); border-radius: var(--radius); padding: 4px; min-width: 0; }
 .group-head { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; }
 .group-head b { color: var(--chalk); font-weight: 600; }
-.group-cards { display: flex; flex-wrap: wrap; padding-top: 2px; }
-.group-cards .card { width: 22px; margin: 0 -8px 2px 0; }
+/* Karten stehen nebeneinander; wird es eng, schieben sie sich von selbst übereinander (die neueste bleibt ganz sichtbar) */
+.group-cards { display: flex; flex-wrap: nowrap; padding-top: 2px; min-height: calc(var(--cap) * 92 / 60 + 2px); }
+.group-cards .card { flex: 0 1 var(--cap); min-width: 0; width: auto; height: calc(var(--cap) * 92 / 60); aspect-ratio: auto; margin: 0 1px 0 0; }
+.group-cards .card:last-child { flex-shrink: 0; }
+.group-cards .card .card-svg { width: var(--cap); height: 100%; }
 
-.table { display: grid; grid-template-columns: 1fr 64px; gap: 8px; align-items: start; }
-.floor { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 6px; min-height: 140px; }
+.table { display: grid; grid-template-columns: 1fr calc(var(--floor) + 14px); gap: 8px; align-items: start; }
+.floor { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--floor) * 1.35), 1fr)); gap: 10px 6px; min-height: calc(var(--floor) * 92 / 60 * 2 + 10px); align-content: start; }
+/* Querformat: wenig Höhe, darum nur eine Reihe Platz freihalten */
+@media (orientation: landscape) and (max-height: 900px) { .floor { min-height: calc(var(--floor) * 92 / 60 + 6px); } }
+/* drei oder mehr Karten eines Monats (Ppeok) brauchen zwei Plätze */
+.stack.wide { grid-column: span 2; }
+/* breite Tablets im Querformat: die Breite nutzen */
+@media (min-width: 1100px) { main { max-width: 1180px; } }
 .stack { position: relative; display: flex; }
-.stack .card { width: 44px; }
-.stack .card + .card { margin-left: -30px; }
+.stack .card { width: var(--floor); }
+.stack .card + .card { margin-left: calc(var(--floor) * -0.68); }
 .stack .badge { position: absolute; top: -6px; left: -2px; z-index: 2; }
 .badge { background: var(--red); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px; }
 .pile { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
-.pile .card { width: 52px; }
+.pile .card { width: var(--floor); }
 .inflight { display: flex; gap: 6px; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); }
 .inflight .card { width: 40px; }
 
-.hand { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding-top: 6px; }
+.hand { display: grid; grid-template-columns: repeat(5, minmax(0, var(--hand))); justify-content: center; gap: 6px; padding-top: 6px; }
 @media (min-width: 700px) {
-  .hand { grid-template-columns: repeat(10, 1fr); }
-  .floor { grid-template-columns: repeat(6, 1fr); }
-  .stack .card { width: 56px; }
-  .stack .card + .card { margin-left: -38px; }
-  .group-cards .card { width: 28px; margin-right: -10px; }
+  .hand { grid-template-columns: repeat(10, minmax(0, var(--hand))); }
 }
 
 .extras { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
@@ -170,7 +181,7 @@ button.card.hint {
   font-size: 26px; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.6);
 }
 .caption.good { color: #ffe066; }
-.stack.placeholder .card { visibility: hidden; width: 44px; }
+.stack.placeholder .card { visibility: hidden; width: var(--floor); }
 button.card.picked { transform: translateY(-18px) scale(1.06); }
 
 /* ---------- Solo, Optionen, Schütteln ---------- */
@@ -188,8 +199,7 @@ body.scene .status { visibility: hidden; }
 /* ---------- Go-Stop zu dritt ---------- */
 .opponent .row-head .backs { flex: 1; display: flex; padding: 0 8px; }
 .opponent.turn { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: var(--radius); }
-.opponent.compact .group { min-height: 34px; padding: 2px 4px; }
-.opponent.compact .group-cards .card { width: 16px; margin-right: -6px; }
+.opponent.compact .group { padding: 2px 4px; }
 .opponent.compact .backs .card { width: 14px; margin-right: -5px; }
 .chances.three { grid-template-columns: 1fr 1fr 1fr; }
 @media (max-width: 480px) { .chances.three { grid-template-columns: 1fr; } }
@@ -242,3 +252,17 @@ body.scene .status { visibility: hidden; }
 .sale-line { font-weight: 600; }
 .lang-select { border: 0; border-radius: 14px; padding: 3px 6px; font-size: 13px; background: rgba(255, 255, 255, 0.14); color: var(--chalk); }
 .lang-select option { color: #222; }
+
+/* ---------- Besondere Karten: Lichter glänzen, Godori-Vögel leuchten und hüpfen ---------- */
+.card-svg.k-gwang { filter: drop-shadow(0 0 2.5px rgba(255, 208, 70, 0.95)) drop-shadow(0 0 7px rgba(255, 186, 40, 0.6)); }
+.card-svg.k-bird { filter: drop-shadow(0 0 2.5px rgba(130, 215, 255, 0.95)) drop-shadow(0 0 7px rgba(80, 175, 255, 0.55)); }
+.card-svg .shine { animation: card-shine 4.5s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes card-shine { 0%, 62% { transform: translateX(-20px); } 100% { transform: translateX(95px); } }
+.card-svg .bird { transform-box: fill-box; transform-origin: 50% 70%; animation: bird-hop 3.2s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes bird-hop {
+  0%, 70%, 100% { transform: translateY(0) rotate(0deg); }
+  76% { transform: translateY(-3px) rotate(-7deg); }
+  82% { transform: translateY(0) rotate(4deg); }
+  88% { transform: translateY(-1.5px) rotate(-3deg); }
+  94% { transform: translateY(0) rotate(0deg); }
+}

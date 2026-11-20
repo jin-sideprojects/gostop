@@ -79,6 +79,11 @@ function caption(text, r, tone) {
   ).finished.then(() => el.remove());
 }
 
+// Breite einer gesammelten Karte (CSS-Variable --cap; die Kartenfelder selbst werden beim Stapeln schmaler)
+function capWidth(grp) {
+  return parseFloat(getComputedStyle(grp).getPropertyValue('--cap')) || grp.querySelector('.card-svg')?.getBoundingClientRect().width || 28;
+}
+
 // Wohin fällt eine Karte dieses Monats auf dem Tisch?
 function floorTarget(month, landed) {
   if (landed.has(month)) {
@@ -144,7 +149,8 @@ export async function playScenes({ events, me, next, sfx }) {
     const grp = document.querySelector(`[data-cap="${mine ? 'mine' : `o${ev.player}`}-pi"] .group-cards`);
     if (grp) {
       const r = grp.getBoundingClientRect();
-      await move(g, box({ left: r.right - 26, top: r.top + 2, width: 24 }), { dur: 380, easing: 'cubic-bezier(.3,.7,.3,1)' });
+      const w = capWidth(grp);
+      await move(g, box({ left: r.right - w, top: r.top + 2, width: w }), { dur: 380, easing: 'cubic-bezier(.3,.7,.3,1)' });
     }
     g.style.opacity = '0';
   }
@@ -278,8 +284,8 @@ export async function playScenes({ events, me, next, sfx }) {
     const existing = grp.querySelectorAll('.card').length;
     const n = (counter.get(key) ?? existing) + 0;
     counter.set(key, n + 1);
-    const w = grp.querySelector('.card')?.getBoundingClientRect().width || 24;
-    return box({ left: Math.min(r.left + n * (w - 8), r.right - w), top: r.top + 2, width: w });
+    const w = capWidth(grp);
+    return box({ left: Math.min(r.left + n * w * 0.8, r.right - w), top: r.top + 2, width: w });
   };
   const sourceFor = (id) => {
     if (ghosts.has(id)) return ghosts.get(id);

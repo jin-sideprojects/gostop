@@ -425,7 +425,8 @@ function floorHtml(g) {
     .map(([m, ids]) => {
       const badge = g.ppeokMonths.includes(m) ? `<span class="badge">Ppeok</span>` : '';
       const extra = g.ppeokBonus?.[m] ?? [];
-      return `<div class="stack" data-month="${m}" aria-label="${esc(T.month(m))}">${badge}${[...ids, ...extra].map((id) => card(id)).join('')}</div>`;
+      const wide = ids.length + extra.length >= 3 ? ' wide' : '';
+      return `<div class="stack${wide}" data-month="${m}" aria-label="${esc(T.month(m))}">${badge}${[...ids, ...extra].map((id) => card(id)).join('')}</div>`;
     })
     .join('');
   return `<div class="floor">${stacks}</div>`;
