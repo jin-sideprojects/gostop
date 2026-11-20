@@ -81,6 +81,7 @@ export const T = {
   threePpeokHelp: 'Three ppeok in one round: an instant win with the base points.',
   fixedPoints: 'Fixed points',
   optBonus: 'Bonus cards (+2, +2, +3 junk)',
+  optBiGodori: 'Bi-godori: all four birds (with the month-12 swallow) count 10 instead of 5',
   optionNextRound: 'Applies from the next round.',
   gukjinTitle: 'Chrysanthemum animal: where to?',
   gukjinHelp: 'You took the chrysanthemum animal (month 9). Decide now how it counts.',
@@ -198,7 +199,7 @@ export const T = {
     mine ? `You get ${n} junk ${fromName ? `from ${fromName}` : 'from your opponent'}.` : `${name} gets ${n} junk from ${fromName ?? 'you'}.`,
   and: ' and ',
   setLabel: {
-    gwang: 'Brights', godori: 'Godori (3 birds)', hong: 'Red ribbons (Hongdan)', cheong: 'Blue ribbons (Cheongdan)',
+    gwang: 'Brights', godori: 'Godori (3 birds)', biGodori: 'Bi-godori (4 birds)', hong: 'Red ribbons (Hongdan)', cheong: 'Blue ribbons (Cheongdan)',
     cho: 'Green ribbons (Chodan)', yeol: 'Animals', tti: 'Ribbons', pi: 'Junk',
   },
   ofNeed: (have, need) => `${have} of ${need}`,

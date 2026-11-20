@@ -152,7 +152,7 @@ const SPECIAL = {
   'm08-yeol': () => `${BASE[8]()}<g class="bird">${goose(14, 14, 1.15)}${goose(42, 9, 1.2)}${goose(27, 23, 1.3)}</g>`,
   'm09-yeol': () => `${BASE[9](1)}${sakeCup()}`,
   'm10-yeol': () => `${BASE[10](0)}${deer()}`,
-  'm12-yeol': () => `${BASE[12](1)}${swallow(30, 40)}`,
+  'm12-yeol': () => `${BASE[12](1)}<g class="bird">${swallow(30, 40)}</g>`,
   'm12-tti': () => `${BASE[12](1)}${ribbon(RIBBON.null, { x: 28, y: 18, angle: -10 })}`,
   'm11-ssangpi': () => `${p('M0 0 H60 V78 H0Z', '#f2d23a')}${BASE[11](1)}`,
   'm12-ssangpi': () => thunderDrum(),
@@ -278,8 +278,8 @@ export function cardSvg(id) {
   const info = cardInfo(id);
   const kind = info.bonus ? `${T.bonusName} +${info.piValue}` : info.piValue === 2 ? `2× ${T.kindShort.pi}` : T.kindShort[info.kind];
   const clip = `clip-${id}-${++clipSeq}`; // eindeutig: dieselbe Karte kann mehrfach im Bild sein
-  // Hervorhebung: Lichter glänzen golden, die drei Godori-Vögel leuchten blau und hüpfen
-  const fx = info.kind === 'gwang' ? ' k-gwang' : info.godori ? ' k-bird' : '';
+  // Hervorhebung: Lichter glänzen golden, die Vögel (Godori und die Schwalbe für Bi-Godori) leuchten blau und hüpfen
+  const fx = info.kind === 'gwang' ? ' k-gwang' : info.godori || id === 'm12-yeol' ? ' k-bird' : '';
   const shine =
     info.kind === 'gwang'
       ? `<linearGradient id="${clip}-s" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff8d8" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>`

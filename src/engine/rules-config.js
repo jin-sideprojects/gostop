@@ -4,6 +4,7 @@ export const RULES = Object.freeze({
   goStopMin3: 3, // 3인 고스톱 (4인도 3명이 친다)
   gwang: { three: 3, threeWithBi: 2, four: 4, five: 15 },
   godori: 5,
+  biGodori: 10, // 옵션: 고도리 3장 + 12월 비 열끗(제비) = 새 4마리, 고도리 대신 이 점수
   dan: 3,
   yeol: { min: 5 },
   tti: { min: 5 },

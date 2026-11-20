@@ -7,7 +7,7 @@ import { chooseAction } from './bot.js';
 export class Room {
   constructor({ seed } = {}) {
     this.rng = makeRng(seed ?? Date.now());
-    this.options = { bonus: false, players: 2 };
+    this.options = { bonus: false, players: 2, biGodori: true };
     this.reset();
   }
 
@@ -60,6 +60,7 @@ export class Room {
       starter,
       carry: this.carry,
       bonus: this.options.bonus,
+      biGodori: this.options.biGodori !== false,
       players: this.seats.length,
     });
     this.countResult(); // 대통령이면 나누자마자 끝난다
@@ -86,6 +87,7 @@ export class Room {
   // 보너스는 다음 판부터. 인원(2/3/4)은 게임 시작 전에만 바꿀 수 있다.
   setOptions(opts = {}) {
     if (opts.bonus !== undefined) this.options.bonus = Boolean(opts.bonus);
+    if (opts.biGodori !== undefined) this.options.biGodori = Boolean(opts.biGodori);
     const players = Number(opts.players);
     if ([2, 3, 4].includes(players) && !this.game && players !== this.seats.length) {
       // 자리 번호는 바꾸지 않는다: 줄일 때는 없어질 자리가 비어 있어야 한다
@@ -149,7 +151,7 @@ export class Room {
     const room = new Room();
     Object.assign(room, {
       seats: data.seats,
-      options: data.options,
+      options: { biGodori: true, ...data.options },
       game: data.game,
       totals: data.totals,
       round: data.round,

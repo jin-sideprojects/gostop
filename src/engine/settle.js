@@ -1,5 +1,5 @@
 import { RULES } from './rules-config.js';
-import { scoreCaptured } from './score.js';
+import { scoreOf } from './score.js';
 
 // 1고 +1, 2고 +2, 3고부터 (기본+2) × 2^(고−2)
 export function goPoints(base, goCount) {
@@ -19,7 +19,7 @@ const losersOf = (state, winner) => {
 
 export function settle(state, winner) {
   const n = state.captured.length - (state.out != null ? 1 : 0); // 실제로 친 사람 수
-  const sw = scoreCaptured(state.captured[winner], state.gukjinAs[winner]);
+  const sw = scoreOf(state, winner);
   const goCount = state.goCount[winner];
   const points = goPoints(sw.total, goCount);
   const bak = RULES.mult.bak;
@@ -30,10 +30,10 @@ export function settle(state, winner) {
 
   const losers = losersOf(state, winner);
   const payments = losers.map((loser) => {
-    const sl = scoreCaptured(state.captured[loser], state.gukjinAs[loser]);
+    const sl = scoreOf(state, loser);
     const multipliers = [...winnerMult];
     // 피박 판정에서는 진 사람의 국진을 진 사람에게 유리하게(피로) 센다
-    const loserPi = Math.max(sl.counts.pi, scoreCaptured(state.captured[loser], 'pi').counts.pi);
+    const loserPi = Math.max(sl.counts.pi, scoreOf(state, loser, 'pi').counts.pi);
     if (sw.pi > 0 && loserPi <= RULES.bak.piMaxLoserPi) multipliers.push({ kind: 'piBak', factor: bak });
     if (sw.gwang > 0 && sl.counts.gwang === RULES.bak.gwangLoserGwang) multipliers.push({ kind: 'gwangBak', factor: bak });
     if (sw.counts.yeol >= RULES.bak.meongWinnerYeol) multipliers.push({ kind: 'meongBak', factor: bak });

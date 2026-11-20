@@ -75,7 +75,7 @@ export class Hub {
           this.room.fillWithBots(seat);
           this.broadcast([{ type: 'newRound', round: this.room.round }]);
         } else if (msg.t === 'options') {
-          this.room.setOptions({ bonus: msg.bonus, players: msg.players });
+          this.room.setOptions({ bonus: msg.bonus, players: msg.players, biGodori: msg.biGodori });
           this.broadcast();
         } else if (msg.t === 'nextRound') {
           this.room.nextRound(seat);

@@ -1,7 +1,7 @@
 import { CARDS, BONUS_CARDS, CARD_BY_ID, monthOf, isBonus } from './cards.js';
 import { makeRng, shuffle } from './rng.js';
 import { RULES } from './rules-config.js';
-import { scoreCaptured } from './score.js';
+import { scoreOf } from './score.js';
 import { settle, settleSpecial } from './settle.js';
 
 export class GameError extends Error {
@@ -20,17 +20,17 @@ function floorHasFourOfAMonth(floor) {
 }
 
 // players: 2 = 맞고, 3 = 3인 고스톱, 4 = 4인 고스톱 (한 명은 광을 팔고 빠진다)
-export function createGame({ seed, deck, starter = 0, carry = 0, bonus = false, players = 2 } = {}) {
-  if (deck) return deal(deck, starter, carry, players, null);
+export function createGame({ seed, deck, starter = 0, carry = 0, bonus = false, players = 2, biGodori = false } = {}) {
+  if (deck) return deal(deck, starter, carry, players, null, biGodori);
   const rng = makeRng(seed ?? Date.now());
   const ids = [...CARDS, ...(bonus ? BONUS_CARDS : [])].map((c) => c.id);
   let state;
-  do state = deal(shuffle(ids, rng), starter, carry, players, Math.floor(rng() * 2 ** 32));
+  do state = deal(shuffle(ids, rng), starter, carry, players, Math.floor(rng() * 2 ** 32), biGodori);
   while (floorHasFourOfAMonth(state.floor));
   return state;
 }
 
-function deal(order, starter, carry, players, saleSeed) {
+function deal(order, starter, carry, players, saleSeed, biGodori = false) {
   const n = players;
   const handSize = n >= 3 ? 7 : 10;
   const floorSize = n >= 3 ? 6 : 8;
@@ -56,6 +56,7 @@ function deal(order, starter, carry, players, saleSeed) {
     turnsTaken: each(() => 0), // 차례를 시작한 횟수 (첫뻑)
     carry,
     result: null,
+    biGodori, // 비고도리 규칙
     out: null, // 4인: 광을 팔고 빠진 자리
     gwangSale: null,
   };
@@ -455,7 +456,7 @@ function stealPi(state, player, n, events) {
 
 export const isFinalTurnOver = (state) => state.hands.every((h) => h.length === 0) && state.pile.length === 0;
 
-const currentScore = (state, seat) => scoreCaptured(state.captured[seat], state.gukjinAs[seat]).total;
+const currentScore = (state, seat) => scoreOf(state, seat).total;
 
 function finishTurn(state, events) {
   const player = state.ctx.player;

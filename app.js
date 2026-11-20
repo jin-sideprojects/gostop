@@ -377,6 +377,11 @@ app.addEventListener('change', (e) => {
     send({ t: 'options', players: Number(e.target.value) });
     return;
   }
+  if (e.target.matches('[data-opt="biGodori"]')) {
+    send({ t: 'options', biGodori: e.target.checked });
+    if (view?.phase === 'playing') toast(T.optionNextRound);
+    return;
+  }
   if (e.target.matches('[data-opt="bonus"]')) {
     send({ t: 'options', bonus: e.target.checked });
     if (view?.phase === 'playing') toast(T.optionNextRound);
@@ -494,7 +499,8 @@ function renderScoreLine() {
 }
 
 function optionHtml() {
-  return `<label class="option"><input type="checkbox" data-opt="bonus" ${view?.options?.bonus ? 'checked' : ''}> ${T.optBonus}</label>`;
+  return `<label class="option"><input type="checkbox" data-opt="bonus" ${view?.options?.bonus ? 'checked' : ''}> ${T.optBonus}</label>
+    <label class="option"><input type="checkbox" data-opt="biGodori" ${view?.options?.biGodori !== false ? 'checked' : ''}> ${T.optBiGodori}</label>`;
 }
 
 function center(title, text, extra = '') {
@@ -506,12 +512,13 @@ function chancesHtml(g) {
   const show = (list) => list.filter((x) => x.possible || x.points > 0).slice(0, max);
   const othersCaptured = g.others.flatMap((o) => o.captured);
   const ul = (list) => (list.length ? `<ul>${list.map((x) => `<li class="${x.points ? 'scored' : ''}">${esc(x.text)}</li>`).join('')}</ul>` : `<p class="none">${T.nothingYet}</p>`);
-  const mine = show(prospects(g.captured.mine, othersCaptured, g.gukjinAs.mine));
+  const opts = { biGodori: view.options?.biGodori !== false };
+  const mine = show(prospects(g.captured.mine, othersCaptured, g.gukjinAs.mine, opts));
   const sittingOut = g.sitOut?.seat === g.you;
   const blocks = sittingOut ? [] : [`<div><h3>${T.chances}: ${T.you}</h3>${ul(mine)}</div>`];
   for (const o of g.others) {
     const rest = [...g.captured.mine, ...g.others.filter((x) => x !== o).flatMap((x) => x.captured)];
-    blocks.push(`<div><h3>${T.chances}: ${esc(nameOf(o.seat))}</h3>${ul(show(prospects(o.captured, rest, o.gukjinAs)))}</div>`);
+    blocks.push(`<div><h3>${T.chances}: ${esc(nameOf(o.seat))}</h3>${ul(show(prospects(o.captured, rest, o.gukjinAs, opts)))}</div>`);
   }
   return `<section class="chances ${g.others.length > 1 ? 'three' : ''}" aria-label="${T.chances}">${blocks.join('')}</section>`;
 }

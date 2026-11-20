@@ -101,7 +101,8 @@ function counts(ids, gukjinAs) {
   return c;
 }
 
-export function prospects(mine, theirs, gukjinAs = 'yeol') {
+// opts.biGodori: 비고도리(새 4마리 = 10점)도 보여 준다
+export function prospects(mine, theirs, gukjinAs = 'yeol', opts = {}) {
   const out = [];
   const have = counts(mine, gukjinAs);
   const taken = new Set([...mine, ...theirs]);
@@ -113,8 +114,18 @@ export function prospects(mine, theirs, gukjinAs = 'yeol') {
   if (g >= 3) out.push(item('gwang', g, 3, [], true, gwangPoints(have.gwang)));
   else if (g === 2) out.push(item('gwang', g, 3, [], 5 - theirGwang >= 3, 0));
 
+  // Bi-Godori: die drei Godori-Vögel und die Schwalbe (Dezember-Tier)
+  const BI = [...SETS.godori, 'm12-yeol'];
+  const biGot = BI.filter((id) => mine.includes(id));
+  const biDone = opts.biGodori && biGot.length === 4;
+  if (opts.biGodori && biGot.length >= 3 && SETS.godori.every((id) => mine.includes(id))) {
+    const missing = BI.filter((id) => !biGot.includes(id));
+    out.push(item('biGodori', biGot.length, 4, missing, missing.every((id) => !theirs.includes(id)), biDone ? 10 : 0));
+  }
+
   // Kombinationen aus drei Karten
   for (const [key, ids] of Object.entries(SETS)) {
+    if (key === 'godori' && biDone) continue; // schon als Bi-Godori gezählt
     const got = ids.filter((id) => mine.includes(id) && !(id === 'm09-yeol' && gukjinAs === 'pi'));
     if (got.length < 2) continue;
     const missing = ids.filter((id) => !got.includes(id));

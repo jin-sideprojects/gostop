@@ -81,6 +81,7 @@ export const T = {
   threePpeokHelp: 'Dreimal Ppeok in einer Runde: sofort gewonnen mit den Grundpunkten.',
   fixedPoints: 'Feste Punkte',
   optBonus: 'Bonuskarten (+2, +2, +3 Spreu)',
+  optBiGodori: 'Bi-Godori: alle vier Vögel (mit der Schwalbe aus Monat 12) zählen 10 statt 5',
   optionNextRound: 'Gilt ab der nächsten Runde.',
   gukjinTitle: 'Chrysanthemen-Tier: wohin?',
   gukjinHelp: 'Du hast das Chrysanthemen-Tier (Monat 9) genommen. Entscheide jetzt, wie es zählt.',
@@ -202,7 +203,7 @@ export const T = {
     mine ? `Du bekommst ${n} Spreu ${fromName ? `von ${fromName}` : 'vom Gegner'}.` : `${name} bekommt ${n} Spreu von ${fromName ?? 'dir'}.`,
   and: ' und ',
   setLabel: {
-    gwang: 'Lichter', godori: 'Godori (3 Vögel)', hong: 'Rote Bänder (Hongdan)', cheong: 'Blaue Bänder (Cheongdan)',
+    gwang: 'Lichter', godori: 'Godori (3 Vögel)', biGodori: 'Bi-Godori (4 Vögel)', hong: 'Rote Bänder (Hongdan)', cheong: 'Blaue Bänder (Cheongdan)',
     cho: 'Grüne Bänder (Chodan)', yeol: 'Tiere', tti: 'Bänder', pi: 'Spreu',
   },
   ofNeed: (have, need) => `${have} von ${need}`,

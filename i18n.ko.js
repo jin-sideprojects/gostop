@@ -80,6 +80,7 @@ export const T = {
   threePpeokHelp: '한 판에 뻑 세 번: 기본 점수로 바로 승리.',
   fixedPoints: '정해진 점수',
   optBonus: '보너스 피 (+2, +2, +3)',
+  optBiGodori: '비고도리: 새 4마리(12월 비 열끗 포함)면 고도리 5점 대신 10점',
   optionNextRound: '다음 판부터 적용돼요.',
   gukjinTitle: '국진: 어디에 둘까요?',
   gukjinHelp: '9월 국진을 먹었어요. 열끗으로 쓸지 쌍피로 쓸지 지금 정하세요.',
@@ -197,7 +198,7 @@ export const T = {
     mine ? `나: ${fromName ?? '상대'}에게서 피 ${n}장 받음.` : `${name}: ${fromName ?? '나'}에게서 피 ${n}장 받음.`,
   and: ', ',
   setLabel: {
-    gwang: '광', godori: '고도리 (새 3마리)', hong: '홍단', cheong: '청단',
+    gwang: '광', godori: '고도리 (새 3마리)', biGodori: '비고도리 (새 4마리)', hong: '홍단', cheong: '청단',
     cho: '초단', yeol: '열끗', tti: '띠', pi: '피',
   },
   ofNeed: (have, need) => `${need}장 중 ${have}장`,

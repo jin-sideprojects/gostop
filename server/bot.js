@@ -1,7 +1,7 @@
 // 컴퓨터 상대: 단순하지만 그럴듯하게 둔다. 자기 손패와 공개된 패만 본다.
 import { legalActions, otherSeats } from '../src/engine/game.js';
 import { CARD_BY_ID, monthOf } from '../src/engine/cards.js';
-import { scoreCaptured } from '../src/engine/score.js';
+import { scoreOf } from '../src/engine/score.js';
 
 const SETS = [
   ['m02-yeol', 'm04-yeol', 'm08-yeol'],
@@ -47,13 +47,13 @@ export function chooseAction(state, seat) {
   // 4인 광팔기: 광 2장이면 판다. 3장 이상이면 광으로 점수를 낼 수 있으니 친다.
   if (p?.type === 'sellGwang') return { type: 'gwang', as: p.gwang.length === 2 ? 'sell' : 'play' };
   if (p?.type === 'chooseGukjin') {
-    const asYeol = scoreCaptured(mine, 'yeol');
-    const asPi = scoreCaptured(mine, 'pi');
+    const asYeol = scoreOf(state, seat, 'yeol');
+    const asPi = scoreOf(state, seat, 'pi');
     const pick = asPi.total > asYeol.total || (asPi.total === asYeol.total && asPi.counts.pi >= 7) ? 'pi' : 'yeol';
     return { type: 'setGukjin', as: pick };
   }
   if (p?.type === 'goStop') {
-    const opp = Math.max(...otherSeats(state, seat).map((o) => scoreCaptured(state.captured[o], state.gukjinAs[o]).total));
+    const opp = Math.max(...otherSeats(state, seat).map((o) => scoreOf(state, o).total));
     const near = state.hands.length >= 3 ? 2 : 5; // 상대가 이만큼 가까우면 멈춘다
     const go = state.goCount[seat] < 2 && opp < near && state.hands[seat].length >= 3;
     return { type: go ? 'go' : 'stop' };
