@@ -11,6 +11,10 @@ export const T = {
   soundHelp: 'Effektgeräusche',
   language: 'Sprache',
   rulesHref: 'regeln.de.html',
+  // Ansagen (Sprachausgabe): echte Wörter, keine Lautschrift
+  voiceLang: 'de-DE',
+  voiceGo: (n) => (n === 1 ? 'Go!' : `${['', '', 'Zweimal', 'Dreimal', 'Viermal', 'Fünfmal', 'Sechsmal'][n] ?? `${n}-mal`} Go!`),
+  voiceStop: 'Stopp!',
 
   waiting: 'Warte auf Mitspieler…',
   waitingHelp: 'Die zweite Person öffnet dieselbe Adresse auf ihrem Handy oder Tablet. Oder spiel allein gegen den Computer.',

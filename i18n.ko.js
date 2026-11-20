@@ -11,6 +11,10 @@ export const T = {
   soundHelp: '효과음',
   language: '언어',
   rulesHref: 'rules.ko.html',
+  // 음성: 실제로 판에서 부르는 말 (고, 투 고, 쓰리 고 …)
+  voiceLang: 'ko-KR',
+  voiceGo: (n) => (n === 1 ? '고!' : `${['', '', '투', '쓰리', '포', '파이브', '식스'][n] ?? n} 고!`),
+  voiceStop: '스톱!',
 
   waiting: '다른 사람을 기다리는 중…',
   waitingHelp: '두 번째 사람이 휴대폰이나 태블릿에서 같은 주소를 열면 돼요. 혼자 컴퓨터와 칠 수도 있어요.',

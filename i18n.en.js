@@ -13,6 +13,9 @@ export const T = {
   soundHelp: 'Sound effects',
   language: 'Language',
   rulesHref: 'rules.en.html',
+  voiceLang: 'en-US',
+  voiceGo: (n) => (n === 1 ? 'Go!' : `${['', '', 'Two', 'Three', 'Four', 'Five', 'Six'][n] ?? n} go!`),
+  voiceStop: 'Stop!',
 
   waiting: 'Waiting for players…',
   waitingHelp: 'The second person opens the same address on their phone or tablet. Or play alone against the computer.',
