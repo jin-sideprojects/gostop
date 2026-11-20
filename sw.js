@@ -1,5 +1,5 @@
 // automatisch erzeugt (npm run build:web)
-const CACHE = 'matgo-2059479bed7f';
+const CACHE = 'matgo-e1f93ef46117';
 const FILES = ["./","./app.js","./cards-svg.js","./commentary.js","./config.js","./effects.js","./i18n.de.js","./icons/icon-192.png","./icons/icon-512.png","./index.html","./manifest.webmanifest","./net.js","./regeln.de.html","./scenes.js","./server/bot.js","./server/hub.js","./server/room.js","./sound.js","./src/engine/cards.js","./src/engine/game.js","./src/engine/rng.js","./src/engine/rules-config.js","./src/engine/score.js","./src/engine/settle.js","./src/engine/view.js","./style.css","./vendor/peerjs.min.js","./voice.js"];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));

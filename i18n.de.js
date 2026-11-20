@@ -26,6 +26,7 @@ export const T = {
   codeOffline: 'ohne Internet: nur gegen den Computer',
   codeTaken: 'Code belegt – bitte Beenden und neu starten',
   waitingHelpApp: 'Andere Tablets: „Mitspielen“ antippen und den Code eingeben. Oder allein gegen den Computer spielen.',
+  threeHint: 'Zu dritt? Zuerst „Go-Stop (3 Spieler)“ wählen, dann treten zwei Tablets mit dem Code bei. Das Spiel beginnt, sobald alle drei da sind.',
   leave: 'Beenden',
   leaveConfirm: 'Nochmal tippen',
   mate: 'Mitspieler',

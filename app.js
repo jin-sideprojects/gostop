@@ -413,6 +413,7 @@ function render() {
         <label><input type="radio" name="players" value="3" data-opt="players" ${n === 3 ? 'checked' : ''}> ${T.typeGostop}</label>
       </fieldset>
       <p class="here">${T.here(here, n)}</p>
+      ${session?.role === 'host' && n === 2 ? `<p class="three-hint">${T.threeHint}</p>` : ''}
       <button class="btn primary big" data-cmd="solo">${n === 3 ? T.fillBots : T.playSolo}</button>
       ${optionHtml()}</div>`);
   }
