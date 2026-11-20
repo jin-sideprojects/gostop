@@ -59,12 +59,50 @@ function say(text, { pitch, rate, kind, lang = T.voiceLang, queue = false }) {
   }
 }
 
+// Selbst aufgenommene Rufe (public/audio): gleich in jeder Sprache. Fehlt die Datei oder blockiert der
+// Browser die Wiedergabe, springt die Sprachausgabe ein.
+export const CLIPS = Object.freeze({
+  go: [1, 2, 3, 4, 5].map((n) => `audio/go${n}.mp3`),
+  stop: ['audio/stop.mp3'],
+  ppeok: [1, 2, 3, 4, 5].map((n) => `audio/ppeok${n}.mp3`),
+  steal: [1, 2, 3, 4].map((n) => `audio/steal${n}.mp3`),
+});
+
+let playing = null;
+function playClip(src, fallback, queue = false) {
+  if (!enabled || !hasWindow || typeof Audio === 'undefined') return fallback();
+  const start = () => {
+    try {
+      const a = new Audio(src);
+      playing = a;
+      a.play().catch(fallback);
+    } catch {
+      fallback();
+    }
+  };
+  if (queue && playing && !playing.ended && !playing.paused) playing.addEventListener('ended', start, { once: true });
+  else {
+    playing?.pause();
+    start();
+  }
+}
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
+
 export function sayGo(count = 1) {
+  const n = Math.min(Math.max(count, 1), 5);
+  playClip(CLIPS.go[n - 1], () => sayGoVoice(count));
+}
+
+export function sayStop() {
+  playClip(CLIPS.stop[0], sayStopVoice);
+}
+
+function sayGoVoice(count = 1) {
   // hoch, etwas gedehnt, ein bisschen frech
   say(T.voiceGo(count), { pitch: 1.7, rate: 0.85, kind: 'female' });
 }
 
-export function sayStop() {
+function sayStopVoice() {
   // tief, kurz, entschieden
   say(T.voiceStop, { pitch: 0.4, rate: 0.9, kind: 'male' });
 }
@@ -82,11 +120,19 @@ export function sayStart() {
 }
 
 export function saySteal(queue = false) {
+  playClip(pick(CLIPS.steal), () => saySteal2(queue), queue);
+}
+
+export function sayPpeok(queue = false) {
+  playClip(pick(CLIPS.ppeok), () => sayPpeok2(queue), queue);
+}
+
+function saySteal2(queue) {
   // freudig: Spreu geklaut
   say(CALLS.steal.text, { lang: CALLS.steal.lang, pitch: 1.6, rate: 0.85, kind: 'female', queue });
 }
 
-export function sayPpeok(queue = false) {
+function sayPpeok2(queue) {
   // Ppeok: "쌌다!"
   say(CALLS.ppeok.text, { lang: CALLS.ppeok.lang, pitch: 0.8, rate: 0.95, kind: 'male', queue });
 }
