@@ -1,7 +1,7 @@
 // 규칙 숫자는 여기에만 둔다. 바꾸려면 이 파일과 docs/rules.md, public/regeln.de.html을 같이 고친다.
 export const RULES = Object.freeze({
   goStopMin: 7, // 맞고
-  goStopMin3: 3, // 3인 고스톱
+  goStopMin3: 3, // 3인 고스톱 (4인도 3명이 친다)
   gwang: { three: 3, threeWithBi: 2, four: 4, five: 15 },
   godori: 5,
   dan: 3,
@@ -18,4 +18,5 @@ export const RULES = Object.freeze({
   president: 15, // 대통령: 처음 손에 같은 월 4장
   firstPpeokSteal: 1, // 첫뻑: 첫 차례 뻑이면 모두에게서 피 1장
   threePpeok: 3, // 쓰리뻑: 이만큼 뻑하면 기본점수로 승리
+  gwangSale: { perGwang: 1 }, // 4인 광팔기: 치는 세 사람이 각자 광 1장당 이만큼 낸다 (비광 혼자면 0)
 });

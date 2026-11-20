@@ -11,8 +11,14 @@ export function goPoints(base, goCount) {
 // 이긴 사람이 진 사람 각자에게서 받는다. 박은 진 사람마다 따로 본다.
 // 맞고: 진 사람이 고를 불렀으면 고박 ×2.
 // 3인: 진 사람 중 한 명만 고를 불렀으면 그 사람이 모두의 몫을 혼자 낸다(독박).
-export function settle(state, winner) {
+// 이긴 사람 다음 차례부터 진 사람들 (4인에서 광 판 자리는 빠진다)
+const losersOf = (state, winner) => {
   const n = state.captured.length;
+  return Array.from({ length: n - 1 }, (_, i) => (winner + 1 + i) % n).filter((s) => s !== state.out);
+};
+
+export function settle(state, winner) {
+  const n = state.captured.length - (state.out != null ? 1 : 0); // 실제로 친 사람 수
   const sw = scoreCaptured(state.captured[winner], state.gukjinAs[winner]);
   const goCount = state.goCount[winner];
   const points = goPoints(sw.total, goCount);
@@ -22,7 +28,7 @@ export function settle(state, winner) {
   for (let i = 0; i < state.shakes[winner].length; i++) winnerMult.push({ kind: 'shake', factor: RULES.mult.shake });
   for (let i = 0; i < state.bombs[winner].length; i++) winnerMult.push({ kind: 'bomb', factor: RULES.mult.bomb });
 
-  const losers = Array.from({ length: n - 1 }, (_, i) => (winner + 1 + i) % n);
+  const losers = losersOf(state, winner);
   const payments = losers.map((loser) => {
     const sl = scoreCaptured(state.captured[loser], state.gukjinAs[loser]);
     const multipliers = [...winnerMult];
@@ -53,8 +59,7 @@ export function settle(state, winner) {
 
 // 대통령·쓰리뻑처럼 점수가 정해진 승리: 진 사람마다 같은 점수, 나가리 배수만 붙는다
 export function settleSpecial(state, winner, points, special) {
-  const n = state.captured.length;
-  const losers = Array.from({ length: n - 1 }, (_, i) => (winner + 1 + i) % n);
+  const losers = losersOf(state, winner);
   const multipliers = state.carry > 0 ? [{ kind: 'nagari', factor: RULES.mult.nagari ** state.carry }] : [];
   const payments = losers.map((from) => ({ from, multipliers: [...multipliers], amount: multipliers.reduce((x, m) => x * m.factor, points) }));
   const final = payments.reduce((x, p) => x + p.amount, 0);

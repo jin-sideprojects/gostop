@@ -44,6 +44,8 @@ export function chooseAction(state, seat) {
     return legal.reduce((a, b) => (value(b.cardId, mine) > value(a.cardId, mine) ? b : a));
   }
   if (p?.type === 'choosePresident') return { type: 'president', as: 'win' };
+  // 4인 광팔기: 광 2장이면 판다. 3장 이상이면 광으로 점수를 낼 수 있으니 친다.
+  if (p?.type === 'sellGwang') return { type: 'gwang', as: p.gwang.length === 2 ? 'sell' : 'play' };
   if (p?.type === 'chooseGukjin') {
     const asYeol = scoreCaptured(mine, 'yeol');
     const asPi = scoreCaptured(mine, 'pi');
@@ -52,7 +54,7 @@ export function chooseAction(state, seat) {
   }
   if (p?.type === 'goStop') {
     const opp = Math.max(...otherSeats(state, seat).map((o) => scoreCaptured(state.captured[o], state.gukjinAs[o]).total));
-    const near = state.hands.length === 3 ? 2 : 5; // 상대가 이만큼 가까우면 멈춘다
+    const near = state.hands.length >= 3 ? 2 : 5; // 상대가 이만큼 가까우면 멈춘다
     const go = state.goCount[seat] < 2 && opp < near && state.hands[seat].length >= 3;
     return { type: go ? 'go' : 'stop' };
   }

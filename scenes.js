@@ -3,7 +3,7 @@
 // 2) oberste Stapelkarte wird umgedreht und knallt auf ihren Partner
 // 3) gewonnene Karten fliegen zum Sammelplatz
 import { cardInfo, cardSvg, cardBackSvg } from './cards-svg.js';
-import { T } from './i18n.de.js';
+import { T } from './i18n.js';
 import { fxBomb, fxPoop, fxBroom, fxKiss, fxClap } from './effects.js';
 
 const RATIO = 92 / 60;

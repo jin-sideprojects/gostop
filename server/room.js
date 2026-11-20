@@ -3,7 +3,7 @@ import { makeRng } from '../src/engine/rng.js';
 import { viewFor as gameView } from '../src/engine/view.js';
 import { chooseAction } from './bot.js';
 
-// 자리(2 또는 3), 토큰, 라운드, 누적 점수. 빈 자리는 컴퓨터가 채울 수 있다.
+// 자리(2, 3 또는 4), 토큰, 라운드, 누적 점수. 빈 자리는 컴퓨터가 채울 수 있다.
 export class Room {
   constructor({ seed } = {}) {
     this.rng = makeRng(seed ?? Date.now());
@@ -19,6 +19,7 @@ export class Room {
     this.carry = 0;
     this.starter = null;
     this.counted = false;
+    this.saleCounted = false;
   }
 
   get mode() {
@@ -53,6 +54,7 @@ export class Room {
     this.round += 1;
     this.starter = starter;
     this.counted = false;
+    this.saleCounted = false;
     this.game = createGame({
       seed: Math.floor(this.rng() * 2 ** 32),
       starter,
@@ -64,6 +66,12 @@ export class Room {
   }
 
   countResult() {
+    // 4인 광팔기: 판 결과와 상관없이 판 사람이 받는다
+    const sale = this.game?.gwangSale;
+    if (sale && !this.saleCounted) {
+      this.saleCounted = true;
+      this.totals[sale.seat] += sale.total;
+    }
     const r = this.game?.result;
     if (!r || this.counted) return;
     this.counted = true;
@@ -75,11 +83,11 @@ export class Room {
     }
   }
 
-  // 보너스는 다음 판부터. 인원(2/3)은 게임 시작 전에만 바꿀 수 있다.
+  // 보너스는 다음 판부터. 인원(2/3/4)은 게임 시작 전에만 바꿀 수 있다.
   setOptions(opts = {}) {
     if (opts.bonus !== undefined) this.options.bonus = Boolean(opts.bonus);
     const players = Number(opts.players);
-    if ((players === 2 || players === 3) && !this.game && players !== this.seats.length) {
+    if ([2, 3, 4].includes(players) && !this.game && players !== this.seats.length) {
       // 자리 번호는 바꾸지 않는다: 줄일 때는 없어질 자리가 비어 있어야 한다
       if (this.seats.slice(players).every((x) => x === null)) {
         this.options.players = players;
@@ -133,8 +141,8 @@ export class Room {
 
   // Speichern/Wiederherstellen (Gastgeber-Tablet lädt die Seite neu)
   toJSON() {
-    const { seats, options, game, totals, round, carry, starter, counted } = this;
-    return { v: 1, seats, options, game, totals, round, carry, starter, counted };
+    const { seats, options, game, totals, round, carry, starter, counted, saleCounted } = this;
+    return { v: 1, seats, options, game, totals, round, carry, starter, counted, saleCounted };
   }
 
   static fromJSON(data) {
@@ -148,6 +156,7 @@ export class Room {
       carry: data.carry,
       starter: data.starter,
       counted: data.counted,
+      saleCounted: data.saleCounted ?? true,
     });
     return room;
   }

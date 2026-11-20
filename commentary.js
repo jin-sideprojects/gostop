@@ -1,5 +1,5 @@
 // Spielbericht (was ist passiert?) und Chancen (was fehlt noch?) – nur Text, keine Darstellung.
-import { T } from './i18n.de.js';
+import { T } from './i18n.js';
 import { cardInfo } from './cards-svg.js';
 
 const ALL = [];
@@ -18,15 +18,15 @@ export function cardName(id) {
   const c = cardInfo(id);
   if (c.bonus) return `${T.bonusName} +${c.piValue}`;
   const kind = c.piValue === 2 ? T.doubleSpreu : T.kindShort[c.kind];
-  return `${c.month} ${T.plants[c.month]}-${kind}`;
+  return T.cardName(c.month, T.plants[c.month], kind);
 }
 
 const list = (ids) => ids.map(cardName).join(T.and);
 
-// Ereignisse eines Zuges → deutsche Sätze
+// Ereignisse eines Zuges → Sätze in der gewählten Sprache
 // nameOf(seat): optional, für Go-Stop zu dritt (sonst „Gegner“)
 export function describeTurn(events, me, nameOf = null) {
-  const nm = (seat) => (nameOf ? nameOf(seat) : 'Gegner');
+  const nm = (seat) => (nameOf ? nameOf(seat) : T.opponent);
   const lines = [];
   let played = null;
   let flipped = null;

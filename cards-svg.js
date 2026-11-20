@@ -1,6 +1,6 @@
 // Karten-Infos aus der id (m09-yeol → Monat 9, Tier) und Kartenbilder nach den
 // traditionellen Hwatu-Motiven, als einfache eigene SVG-Zeichnungen.
-import { T } from './i18n.de.js';
+import { T } from './i18n.js';
 
 export function cardInfo(id) {
   if (id.startsWith('b-')) return { id, month: 0, kind: 'pi', piValue: id === 'b-3' ? 3 : 2, part: 'bonus', bonus: true };

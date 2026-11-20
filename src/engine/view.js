@@ -16,18 +16,21 @@ export function viewFor(state, seat) {
     gukjinAs: state.gukjinAs[o],
   }));
   const opp = others[0];
+  const hideFloor = p?.type === 'sellGwang';
   return {
     you: seat,
     players: state.hands.length,
     hand: [...state.hands[seat]],
     others,
     opponentHandCount: opp.handCount,
-    floor: [...state.floor],
+    floor: hideFloor ? [] : [...state.floor],
+    floorHidden: hideFloor ? state.floor.length : 0, // 4인: 광팔기를 정하는 동안 바닥은 덮여 있다
+    sitOut: state.gwangSale ? structuredClone(state.gwangSale) : null,
     pileCount: state.pile.length,
     inFlight: inFlight(state),
     captured: { mine: [...state.captured[seat]], theirs: opp.captured },
     turn: state.turn,
-    pending: !p ? null : p.player === seat ? { ...p } : { type: 'opponentDeciding', player: p.player },
+    pending: !p ? null : p.player === seat ? { ...p } : { type: 'opponentDeciding', player: p.player, about: p.type },
     scores: { mine: scoreCaptured(state.captured[seat], state.gukjinAs[seat]), theirs: opp.score },
     goCount: { mine: state.goCount[seat], theirs: opp.goCount },
     shakes: { mine: [...state.shakes[seat]], theirs: opp.shakes },

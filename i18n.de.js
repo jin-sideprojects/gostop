@@ -7,6 +7,10 @@ export const T = {
   rules: 'Regeln',
   hints: 'Hinweise',
   hintsHelp: 'Spielbare Karten hervorheben',
+  sound: 'Ton',
+  soundHelp: 'Effektgeräusche',
+  language: 'Sprache',
+  rulesHref: 'regeln.de.html',
 
   waiting: 'Warte auf Mitspieler…',
   waitingHelp: 'Die zweite Person öffnet dieselbe Adresse auf ihrem Handy oder Tablet. Oder spiel allein gegen den Computer.',
@@ -26,7 +30,7 @@ export const T = {
   codeOffline: 'ohne Internet: nur gegen den Computer',
   codeTaken: 'Code belegt – bitte Beenden und neu starten',
   waitingHelpApp: 'Andere Tablets: „Mitspielen“ antippen und den Code eingeben. Oder allein gegen den Computer spielen.',
-  threeHint: 'Zu dritt? Zuerst „Go-Stop (3 Spieler)“ wählen, dann treten zwei Tablets mit dem Code bei. Das Spiel beginnt, sobald alle drei da sind.',
+  threeHint: 'Zu dritt oder zu viert? Zuerst die Spielerzahl wählen, dann treten die anderen Tablets mit dem Code bei. Das Spiel beginnt, sobald alle da sind.',
   leave: 'Beenden',
   leaveConfirm: 'Nochmal tippen',
   mate: 'Mitspieler',
@@ -34,6 +38,26 @@ export const T = {
   gameType: 'Spiel',
   typeMatgo: 'Matgo (2 Spieler, ab 7 Punkten)',
   typeGostop: 'Go-Stop (3 Spieler, ab 3 Punkten)',
+  typeGostop4: 'Go-Stop zu viert (einer verkauft seine Lichter und setzt aus)',
+  waitingHelp4: 'Go-Stop zu viert: Die anderen öffnen dieselbe Adresse auf ihrem Handy oder Tablet. Freie Plätze kann der Computer übernehmen.',
+  // 4 Spieler: Lichter verkaufen (Gwang-Palgi)
+  sellTitle: 'Lichter verkaufen?',
+  sellHelp: (n, total) =>
+    n
+      ? `Du hast ${n} ${n === 1 ? 'Licht' : 'Lichter'}. Verkaufst du, setzt du diese Runde aus und bekommst ${total} Punkte: 1 pro Licht von jeder der drei Personen.`
+      : 'Du hast keine Lichter zum Verkaufen (das Regenlicht allein zählt nicht). Aussetzen bringt dir diese Runde 0 Punkte.',
+  sellYes: 'Verkaufen und aussetzen',
+  sellYesHelp: (total) => `+${total} Punkte, ohne zu spielen`,
+  sellNo: 'Mitspielen',
+  sellNoHelp: 'Spielen zwei Personen mit, muss die dritte aussetzen.',
+  decidesSale: (name) => `${name} entscheidet: verkaufen oder mitspielen?`,
+  floorHidden: 'Der Tisch wird aufgedeckt, sobald feststeht, wer aussetzt.',
+  sitOutMine: (n, total) => `Du setzt diese Runde aus. ${n} ${n === 1 ? 'Licht' : 'Lichter'} verkauft: +${total} Punkte.`,
+  sitOutOf: (name, n, total) => `${name} setzt aus${n ? ` und hat ${n} ${n === 1 ? 'Licht' : 'Lichter'} für ${total} Punkte verkauft` : ''}.`,
+  saleTitleOf: (name, forced) => (forced ? `${name} muss aussetzen` : `${name} verkauft`),
+  saleTitleMine: (forced) => (forced ? 'Du musst aussetzen' : 'Du verkaufst'),
+  saleText: (n, total) => (n ? `${n} ${n === 1 ? 'Licht' : 'Lichter'}: +${total} Punkte. Die anderen drei spielen.` : 'Keine Lichter zum Verkaufen. Die anderen drei spielen.'),
+  resultSale: (name, total) => `Lichter-Verkauf: ${name} +${total}`,
   here: (a, n) => `Am Tisch: ${a} von ${n}`,
   fillBots: 'Freie Plätze mit Computer füllen',
   decides: (name) => `${name} entscheidet…`,
@@ -45,7 +69,7 @@ export const T = {
   president: (m) => `Präsident! Vier Karten aus Monat ${m}`,
   presidentChoice: 'Du hast alle vier Karten eines Monats bekommen. Wie willst du spielen?',
   presidentWin: '15 Punkte nehmen',
-  presidentWinHelp: (n) => (n === 3 ? 'Runde sofort gewinnen: 15 Punkte von jeder Person.' : 'Runde sofort gewinnen.'),
+  presidentWinHelp: (n) => (n >= 3 ? 'Runde sofort gewinnen: 15 Punkte von jeder Person.' : 'Runde sofort gewinnen.'),
   presidentPlay: 'Weiterspielen',
   presidentPlayHelp: 'Die vier Karten behalten, z. B. für eine Bombe später.',
   presidentHelp: 'Vier Karten eines Monats schon beim Austeilen: sofort gewonnen mit 15 Punkten.',
@@ -79,7 +103,7 @@ export const T = {
   opponentTurn: 'Gegner ist dran',
   opponentDeciding: 'Gegner entscheidet…',
   pile: 'Stapel',
-  cardsLeft: (n) => `${n} Karten`,
+  cardsLeft: (n) => `${n} ${n === 1 ? 'Karte' : 'Karten'}`,
   inPlay: 'Wird gespielt',
 
   groups: { gwang: 'Lichter', yeol: 'Tiere', tti: 'Bänder', pi: 'Spreu' },
@@ -116,6 +140,7 @@ export const T = {
     firstPpeok: 'Ppeok im ersten Zug! +1 Spreu von allen',
     threePpeok: 'Drei Ppeok! Sofort gewonnen',
     presidentPlayOn: 'hat einen Präsidenten, spielt aber weiter',
+    staysIn: 'spielt mit',
   },
   who: (mine) => (mine ? 'Du' : 'Gegner'),
 
@@ -150,6 +175,7 @@ export const T = {
   plants: ['', 'Kiefer', 'Pflaume', 'Kirsche', 'Glyzinie', 'Iris', 'Pfingstrose', 'Buschklee', 'Pampasgras', 'Chrysantheme', 'Ahorn', 'Paulownie', 'Regen'],
   doubleSpreu: 'Doppelspreu',
   bonusName: 'Bonus',
+  cardName: (m, plant, kind) => `${m} ${plant}-${kind}`,
 
   // Einblendungen während der Szenen
   fxBomb: 'Bombe!',

@@ -12,15 +12,18 @@
 </head>
 <body>
   <header class="topbar">
-    <strong class="brand">Matgo</strong>
+    <strong class="brand" id="brand">Matgo</strong>
     <span id="score-line" class="score-line"></span>
-    <label class="hint-toggle" title="Spielbare Karten hervorheben">
+    <label class="hint-toggle" id="hints-label" title="Spielbare Karten hervorheben">
       <input type="checkbox" id="hints"> <span>Hinweise</span>
     </label>
-    <label class="hint-toggle" title="Effektgeräusche">
+    <label class="hint-toggle" id="sound-label" title="Effektgeräusche">
       <input type="checkbox" id="sound"> <span>Ton</span>
     </label>
-    <a class="rules-link" href="regeln.de.html" target="_blank" rel="noopener">Regeln</a>
+    <select id="lang" class="lang-select" aria-label="Sprache">
+      <option value="de">DE</option><option value="en">EN</option><option value="ko">한</option>
+    </select>
+    <a class="rules-link" id="rules-link" href="regeln.de.html" target="_blank" rel="noopener">Regeln</a>
     <button id="leave-btn" class="leave-btn" hidden>Beenden</button>
   </header>
   <main id="app" aria-live="polite"></main>

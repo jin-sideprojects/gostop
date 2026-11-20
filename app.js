@@ -1,4 +1,4 @@
-import { T } from './i18n.de.js';
+import { T, setLang, getLang, LANG_NAMES } from './i18n.js';
 import { CONFIG } from './config.js';
 import { wsTransport, HostSession, guestTransport, newCode } from './net.js';
 import { cardInfo, cardSvg, cardBackSvg, cardLabel } from './cards-svg.js';
@@ -47,6 +47,39 @@ let legal = [];
 let retry = null;
 let busy = false; // während einer Animation keine Eingaben
 let report = []; // Sätze zum letzten Zug
+
+// ---------- Sprache ----------
+const langBox = document.getElementById('lang');
+function applyStaticTexts() {
+  document.title = T.title;
+  const set = (id, text, title) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const span = el.querySelector('span');
+    (span ?? el).textContent = text;
+    if (title) el.title = title;
+  };
+  set('brand', T.title);
+  set('hints-label', T.hints, T.hintsHelp);
+  set('sound-label', T.sound, T.soundHelp);
+  set('rules-link', T.rules);
+  const leaveBtn = document.getElementById('leave-btn');
+  if (leaveBtn && !leaveBtn.dataset.armed) leaveBtn.textContent = T.leave;
+  document.getElementById('rules-link')?.setAttribute('href', T.rulesHref);
+  if (langBox) {
+    langBox.value = getLang();
+    langBox.setAttribute('aria-label', T.language);
+    for (const o of langBox.options) o.title = LANG_NAMES[o.value];
+  }
+}
+langBox?.addEventListener('change', () => {
+  setLang(langBox.value);
+  store.set('matgo-lang', getLang());
+  report = []; // alte Sätze waren in der anderen Sprache
+  applyStaticTexts();
+  render();
+});
+applyStaticTexts();
 
 let hints = store.get('matgo-hints') !== 'off';
 hintsBox.checked = hints;
@@ -252,8 +285,14 @@ function showEvents(events) {
     // Ansage: Go (freche Frauenstimme) / Stopp (kühle Männerstimme)
     if (e.type === 'go') sayGo(e.count);
     if (e.type === 'stop') sayStop();
+    if (!msg && e.type !== 'gwangSold') continue;
+    if (e.type !== 'go' && e.type !== 'gwangSold' && e.type !== 'stop') sfx.special(); // Go/Stopp haben ihre Stimme
+    if (e.type === 'gwangSold') {
+      sfx.special();
+      revealSale(e);
+      continue;
+    }
     if (!msg) continue;
-    if (e.type !== 'go' && e.type !== 'stop') sfx.special(); // Go/Stopp haben ihre Stimme
     if (e.type === 'shaken') {
       sfx.rattle();
       shakeScreen(10, 700);
@@ -262,6 +301,21 @@ function showEvents(events) {
     else if (e.type === 'go') toast(`${who}: ${msg(e.count)}`);
     else toast(`${who}: ${msg}`);
   }
+}
+
+// 4 Spieler: Wer aussetzt und welche Lichter verkauft wurden, sehen alle groß
+function revealSale(e) {
+  const mine = e.player === view?.game?.you;
+  const el = document.createElement('div');
+  el.className = 'shake-reveal sale-reveal';
+  el.innerHTML = `<div class="sheet">
+    <h2>${esc(mine ? T.saleTitleMine(e.forced) : T.saleTitleOf(nameOf(e.player), e.forced))}</h2>
+    ${e.cards.length ? `<div class="reveal">${e.cards.map((id) => `<span class="card">${cardSvg(id)}</span>`).join('')}</div>` : ''}
+    <p>${esc(T.saleText(e.cards.length, e.total))}</p></div>`;
+  document.body.append(el);
+  el.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1.05)', offset: 0.7 }, { opacity: 1, transform: 'scale(1)' }], { duration: 300, easing: 'ease-out' });
+  setTimeout(() => el.remove(), 2800);
+  el.addEventListener('click', () => el.remove());
 }
 
 // Schütteln: bei allen groß in der Mitte zeigen, welcher Monat es ist
@@ -358,6 +412,9 @@ function capturedHtml(side, ids, gukjinAs, score) {
 }
 
 function floorHtml(g) {
+  if (g.floorHidden) {
+    return `<div class="floor hidden-floor">${Array.from({ length: g.floorHidden }, () => `<div class="stack">${back()}</div>`).join('')}<p class="floor-note">${T.floorHidden}</p></div>`;
+  }
   const byMonth = new Map();
   for (const id of g.floor) {
     const m = cardInfo(id).month;
@@ -407,14 +464,15 @@ function render() {
   if (view.phase === 'waiting') {
     const n = view.players;
     const here = view.seats.filter((x) => x !== 'empty').length;
-    return center(T.waiting, CONFIG.mode === 'app' ? T.waitingHelpApp : n === 3 ? T.waitingHelp3 : T.waitingHelp, `${hostCodeHtml()}<div class="waiting-actions">
+    const help = CONFIG.mode === 'app' ? T.waitingHelpApp : n === 4 ? T.waitingHelp4 : n === 3 ? T.waitingHelp3 : T.waitingHelp;
+    const radio = (k, label) => `<label><input type="radio" name="players" value="${k}" data-opt="players" ${n === k ? 'checked' : ''}> ${label}</label>`;
+    return center(T.waiting, help, `${hostCodeHtml()}<div class="waiting-actions">
       <fieldset class="game-type"><legend>${T.gameType}</legend>
-        <label><input type="radio" name="players" value="2" data-opt="players" ${n === 2 ? 'checked' : ''}> ${T.typeMatgo}</label>
-        <label><input type="radio" name="players" value="3" data-opt="players" ${n === 3 ? 'checked' : ''}> ${T.typeGostop}</label>
+        ${radio(2, T.typeMatgo)}${radio(3, T.typeGostop)}${radio(4, T.typeGostop4)}
       </fieldset>
       <p class="here">${T.here(here, n)}</p>
       ${session?.role === 'host' && n === 2 ? `<p class="three-hint">${T.threeHint}</p>` : ''}
-      <button class="btn primary big" data-cmd="solo">${n === 3 ? T.fillBots : T.playSolo}</button>
+      <button class="btn primary big" data-cmd="solo">${n >= 3 ? T.fillBots : T.playSolo}</button>
       ${optionHtml()}</div>`);
   }
   renderGame(view.game);
@@ -448,7 +506,8 @@ function chancesHtml(g) {
   const othersCaptured = g.others.flatMap((o) => o.captured);
   const ul = (list) => (list.length ? `<ul>${list.map((x) => `<li class="${x.points ? 'scored' : ''}">${esc(x.text)}</li>`).join('')}</ul>` : `<p class="none">${T.nothingYet}</p>`);
   const mine = show(prospects(g.captured.mine, othersCaptured, g.gukjinAs.mine));
-  const blocks = [`<div><h3>${T.chances}: ${T.you}</h3>${ul(mine)}</div>`];
+  const sittingOut = g.sitOut?.seat === g.you;
+  const blocks = sittingOut ? [] : [`<div><h3>${T.chances}: ${T.you}</h3>${ul(mine)}</div>`];
   for (const o of g.others) {
     const rest = [...g.captured.mine, ...g.others.filter((x) => x !== o).flatMap((x) => x.captured)];
     blocks.push(`<div><h3>${T.chances}: ${esc(nameOf(o.seat))}</h3>${ul(show(prospects(o.captured, rest, o.gukjinAs)))}</div>`);
@@ -470,10 +529,13 @@ function opponentHtml(o, compact) {
 function renderGame(g) {
   const me = g.you;
   const myTurn = !g.pending && g.turn === me && !g.result;
+  const sittingOut = g.sitOut?.seat === me;
   const statusText = g.result
     ? ''
     : g.pending?.type === 'opponentDeciding'
-      ? T.decides(nameOf(g.pending.player))
+      ? g.pending.about === 'sellGwang'
+        ? T.decidesSale(nameOf(g.pending.player))
+        : T.decides(nameOf(g.pending.player))
       : g.pending || myTurn
         ? T.yourTurn
         : T.turnOf(nameOf(g.turn));
@@ -500,24 +562,31 @@ function renderGame(g) {
 
   const inflight = g.inFlight.length ? `<div class="inflight">${T.inPlay}: ${g.inFlight.map((id) => card(id)).join('')}</div>` : '';
   const myGo = g.goCount.mine ? ` <span class="badge">${T.goCount(g.goCount.mine)}</span>` : '';
+  const sitOutBox = g.sitOut && !sittingOut ? `<div class="sitout">${esc(T.sitOutOf(nameOf(g.sitOut.seat), g.sitOut.cards.length, g.sitOut.total))}</div>` : '';
   const reportBox = report.length ? `<section class="report" aria-label="${T.report}">${report.map((l) => `<p>${esc(l)}</p>`).join('')}</section>` : '';
 
   app.innerHTML = `
   ${status === 'reconnecting' ? `<div class="banner">${T.reconnecting}</div>` : ''}
   ${g.others.map((o) => opponentHtml(o, g.others.length > 1)).join('')}
   <div class="status ${myTurn || (g.pending && g.pending.type !== 'opponentDeciding') ? 'mine' : ''}">${esc(statusText)}</div>
+  ${sitOutBox}
   <section class="table">
     ${floorHtml(g)}
     <div class="pile"><span class="card" id="pile">${cardBackSvg()}</span><span id="pile-count">${T.cardsLeft(g.pileCount)}</span></div>
   </section>
   ${inflight}
   ${reportBox}
-  <section class="mine-captured" aria-label="${T.you}">
+  ${
+    sittingOut
+      ? `<section class="mine-captured sitting-out"><p>${esc(T.sitOutMine(g.sitOut.cards.length, g.sitOut.total))}</p>
+        <div class="reveal">${g.sitOut.cards.map((id) => card(id)).join('')}</div></section>`
+      : `<section class="mine-captured" aria-label="${T.you}">
     <div class="row-head"><span><strong>${T.you}</strong>${myGo}</span><span>${T.points(g.scores.mine.total)}</span></div>
     ${capturedHtml('mine', g.captured.mine, g.gukjinAs.mine, g.scores.mine)}
   </section>
   ${extras ? `<div class="extras">${extras}</div>` : ''}
-  <section class="hand" aria-label="Hand">${hand}</section>
+  <section class="hand" aria-label="Hand">${hand}</section>`
+  }
   ${chancesHtml(g)}
   ${overlayHtml(g)}`;
 }
@@ -530,6 +599,18 @@ function overlayHtml(g) {
     return `<div class="overlay"><div class="sheet" role="dialog" aria-modal="true">
       <h2>${T.chooseTitle}</h2><p>${esc(T.chooseHelp(cardInfo(p.card).month))}</p>
       <div class="choices">${card(p.card, { cls: 'played' })}${opts}</div></div></div>`;
+  }
+  if (p?.type === 'sellGwang') {
+    const sell = legalIndex((a) => a.type === 'gwang' && a.as === 'sell');
+    const play = legalIndex((a) => a.type === 'gwang' && a.as === 'play');
+    const total = p.gwang.length * 3;
+    return `<div class="overlay"><div class="sheet" role="dialog" aria-modal="true">
+      <h2>${T.sellTitle}</h2><p>${esc(T.sellHelp(p.gwang.length, total))}</p>
+      <div class="reveal">${g.hand.map((id) => `<span class="card${p.gwang.includes(id) ? '' : ' dim'}">${cardSvg(id)}</span>`).join('')}</div>
+      <div class="gostop">
+        <button class="btn primary" data-legal="${sell}">${T.sellYes}<small>${esc(T.sellYesHelp(total))}</small></button>
+        <button class="btn" data-legal="${play}">${T.sellNo}<small>${T.sellNoHelp}</small></button>
+      </div></div></div>`;
   }
   if (p?.type === 'choosePresident') {
     const win = legalIndex((a) => a.type === 'president' && a.as === 'win');
@@ -560,7 +641,7 @@ function overlayHtml(g) {
     return `<div class="overlay"><div class="sheet" role="dialog" aria-modal="true">
       <h2>${esc(T.goStopTitle(g.scores.mine.total))}</h2>
       <div class="gostop">
-        <button class="btn primary" data-legal="${go}">${T.go}<small>${g.players === 3 ? T.goHelp3 : T.goHelp}</small></button>
+        <button class="btn primary" data-legal="${go}">${T.go}<small>${g.players >= 3 ? T.goHelp3 : T.goHelp}</small></button>
         <button class="btn" data-legal="${stop}">${T.stop}<small>${T.stopHelp}</small></button>
       </div></div></div>`;
   }
@@ -570,7 +651,8 @@ function overlayHtml(g) {
 function resultHtml(g) {
   const r = g.result;
   const me = g.you;
-  const totals = `<p>${T.totals}: ${esc(totalsText())}</p>`;
+  const sale = g.sitOut ? `<p class="sale-line">${esc(T.resultSale(nameOf(g.sitOut.seat), g.sitOut.total))}</p>` : '';
+  const totals = `${sale}<p>${T.totals}: ${esc(totalsText())}</p>`;
   const next = `${optionHtml()}<button class="btn primary" data-cmd="next">${T.nextRound}</button>`;
   if (r.kind === 'nagari') {
     return `<div class="overlay"><div class="sheet" role="dialog" aria-modal="true"><h2>${T.resultNagari}</h2><p>${T.nagariHelp}</p>${totals}${next}</div></div>`;

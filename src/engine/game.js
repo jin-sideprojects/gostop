@@ -19,21 +19,21 @@ function floorHasFourOfAMonth(floor) {
   return Object.values(n).some((c) => c >= 4);
 }
 
-// players: 2 = 맞고, 3 = 3인 고스톱
+// players: 2 = 맞고, 3 = 3인 고스톱, 4 = 4인 고스톱 (한 명은 광을 팔고 빠진다)
 export function createGame({ seed, deck, starter = 0, carry = 0, bonus = false, players = 2 } = {}) {
-  if (deck) return deal(deck, starter, carry, players);
+  if (deck) return deal(deck, starter, carry, players, null);
   const rng = makeRng(seed ?? Date.now());
   const ids = [...CARDS, ...(bonus ? BONUS_CARDS : [])].map((c) => c.id);
   let state;
-  do state = deal(shuffle(ids, rng), starter, carry, players);
+  do state = deal(shuffle(ids, rng), starter, carry, players, Math.floor(rng() * 2 ** 32));
   while (floorHasFourOfAMonth(state.floor));
   return state;
 }
 
-function deal(order, starter, carry, players) {
+function deal(order, starter, carry, players, saleSeed) {
   const n = players;
-  const handSize = n === 3 ? 7 : 10;
-  const floorSize = n === 3 ? 6 : 8;
+  const handSize = n >= 3 ? 7 : 10;
+  const floorSize = n >= 3 ? 6 : 8;
   const each = (f) => Array.from({ length: n }, f);
   const state = {
     hands: each((_, i) => order.slice(i * handSize, (i + 1) * handSize)),
@@ -56,8 +56,49 @@ function deal(order, starter, carry, players) {
     turnsTaken: each(() => 0), // 차례를 시작한 횟수 (첫뻑)
     carry,
     result: null,
+    out: null, // 4인: 광을 팔고 빠진 자리
+    gwangSale: null,
   };
-  // 바닥의 보너스는 선이 가져가고 더미에서 채운다
+  if (n === 4) {
+    // 4인: 선 다음 사람부터 차례로 광을 팔지(빠질지) 정한다. 바닥은 정해질 때까지 덮어 둔다.
+    state.sale = { order: [1, 2, 3].map((i) => (starter + i) % n), idx: 0, seed: saleSeed };
+    askSale(state);
+    return state;
+  }
+  finishDeal(state);
+  return state;
+}
+
+// 팔 수 있는 광: 비광 한 장뿐이면 값이 없다
+export function sellableGwang(hand) {
+  const g = hand.filter((id) => CARD_BY_ID[id].kind === 'gwang');
+  return g.length === 1 && CARD_BY_ID[g[0]].biGwang ? [] : g;
+}
+
+function askSale(state) {
+  const seat = state.sale.order[state.sale.idx];
+  state.pending = { type: 'sellGwang', player: seat, gwang: sellableGwang(state.hands[seat]) };
+}
+
+function sellGwang(state, seat, forced, events) {
+  const n = state.hands.length;
+  const cards = sellableGwang(state.hands[seat]);
+  const per = cards.length * RULES.gwangSale.perGwang;
+  const payments = [1, 2, 3].map((i) => ({ from: (seat + i) % n, amount: per }));
+  state.gwangSale = { seat, cards, forced, payments, total: per * payments.length };
+  state.out = seat;
+  const back = [...state.pile, ...state.hands[seat]];
+  state.pile = state.sale.seed == null ? back : shuffle(back, makeRng(state.sale.seed));
+  state.hands[seat] = [];
+  state.sale = null;
+  state.pending = null;
+  events.push({ type: 'gwangSold', player: seat, cards, forced, total: state.gwangSale.total });
+  finishDeal(state);
+}
+
+function finishDeal(state) {
+  const n = state.hands.length;
+  const starter = state.turn;
   while (state.floor.some(isBonus) && state.pile.length) {
     const i = state.floor.findIndex(isBonus);
     state.captured[starter].push(state.floor[i]);
@@ -68,13 +109,13 @@ function deal(order, starter, carry, players) {
   state.presidents = [];
   for (let i = 0; i < n; i++) {
     const seat = (starter + i) % n;
+    if (seat === state.out) continue;
     const byMonth = {};
     for (const id of state.hands[seat]) if (!isBonus(id)) (byMonth[monthOf(id)] ??= []).push(id);
     const four = Object.entries(byMonth).find(([, ids]) => ids.length === 4);
     if (four) state.presidents.push({ seat, month: Number(four[0]), cards: four[1] });
   }
   askPresident(state);
-  return state;
 }
 
 function askPresident(state) {
@@ -105,6 +146,7 @@ export function legalActions(state, seat) {
       if (p.type === 'goStop') out.push({ type: 'go' }, { type: 'stop' });
       if (p.type === 'chooseGukjin') out.push({ type: 'setGukjin', as: 'yeol' }, { type: 'setGukjin', as: 'pi' });
       if (p.type === 'choosePresident') out.push({ type: 'president', as: 'win' }, { type: 'president', as: 'play' });
+      if (p.type === 'sellGwang') out.push({ type: 'gwang', as: 'sell' }, { type: 'gwang', as: 'play' });
     }
   } else if (state.turn === seat) {
     for (const id of state.hands[seat]) out.push(isBonus(id) ? { type: 'useBonus', cardId: id } : { type: 'play', cardId: id });
@@ -145,6 +187,18 @@ export function applyAction(state, seat, action) {
   }
   const events = [];
   switch (action.type) {
+    case 'gwang': {
+      if (action.as === 'sell') {
+        sellGwang(state, seat, false, events);
+      } else {
+        events.push({ type: 'staysIn', player: seat });
+        state.sale.idx += 1;
+        // 두 사람이 치겠다고 하면 마지막 사람은 빠져야 한다
+        if (state.sale.idx === 2) sellGwang(state, state.sale.order[2], true, events);
+        else askSale(state);
+      }
+      return events;
+    }
     case 'setGukjin':
       state.gukjinAs[seat] = action.as;
       state.gukjinChoice = null;
@@ -297,7 +351,7 @@ function resolve(state, events) {
   // 쓰리뻑: 기본점수로 바로 승리
   if (ctx.threePpeok) {
     state.ctx = null;
-    const base = state.hands.length === 3 ? RULES.goStopMin3 : RULES.goStopMin;
+    const base = state.hands.length >= 3 ? RULES.goStopMin3 : RULES.goStopMin;
     events.push({ type: 'threePpeok', player: ctx.player });
     state.result = { kind: 'win', winner: ctx.player, settlement: settleSpecial(state, ctx.player, base, { kind: 'threePpeok' }) };
     events.push({ type: 'roundEnd', result: state.result });
@@ -377,9 +431,10 @@ function capture(state, player, ids, events) {
   events.push({ type: 'captured', player, cards: ids });
 }
 
+// 내 다음 차례부터 다른 사람들. 광을 팔고 빠진 자리는 없다.
 export const otherSeats = (state, seat) => {
   const n = state.hands.length;
-  return Array.from({ length: n - 1 }, (_, i) => (seat + 1 + i) % n);
+  return Array.from({ length: n - 1 }, (_, i) => (seat + 1 + i) % n).filter((s) => s !== state.out);
 };
 
 // 다른 사람 모두에게서 각각 피를 n장 가져온다: 일반 피 먼저, 없으면 쌍피. 국진과 보너스 피는 가져오지 않는다.
@@ -411,7 +466,7 @@ function finishTurn(state, events) {
   }
   state.ctx = null;
   const score = currentScore(state, player);
-  const goStopMin = state.hands.length === 3 ? RULES.goStopMin3 : RULES.goStopMin;
+  const goStopMin = state.hands.length >= 3 ? RULES.goStopMin3 : RULES.goStopMin;
   if (score >= goStopMin && score > state.lastGoScore[player]) {
     // 마지막 차례이거나 내 손에 패가 없으면 고를 할 수 없다: 자동 스톱
     if (last || state.hands[player].length === 0) {
@@ -431,7 +486,10 @@ function finishTurn(state, events) {
 }
 
 function passTurn(state, player, events) {
-  state.turn = (player + 1) % state.hands.length;
+  const n = state.hands.length;
+  let next = (player + 1) % n;
+  if (next === state.out) next = (next + 1) % n;
+  state.turn = next;
   events.push({ type: 'turn', player: state.turn });
 }
 
