@@ -12,7 +12,7 @@ export const RULES = Object.freeze({
   // 1고 +1, 2고 +2, 3고부터 (기본+2) × 2^(고−2)
   go: { plusUpTo: 2, doubleFrom: 3 },
   // 상대에게서 뺏는 피 장수
-  steal: { firstPpeok: 1, ppeok: 1, jaPpeok: 2, ttadak: 1, jjok: 1, sweep: 1, bomb: 1, bonus: 1 },
+  steal: { firstPpeok: 1, ppeok: 1, jaPpeok: 2, ttadak: 1, jjok: 1, sweep: 1, bomb: 1, bonus: 1, triple: 1 },
   mult: { shake: 2, bomb: 2, bak: 2, nagari: 2 },
   bak: { piMaxLoserPi: 5, gwangLoserGwang: 0, meongWinnerYeol: 7 },
   gukjinPiValue: 2,

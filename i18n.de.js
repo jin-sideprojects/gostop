@@ -124,7 +124,7 @@ export const T = {
   go: 'Go',
   stop: 'Stopp',
 
-  shake: (m) => `Heundeulgi! 3× Monat ${m} zeigen – Sieg zählt ×2`,
+  shake: (m) => `Schütteln! 3× Monat ${m} zeigen – Sieg zählt ×2`,
   bomb: (m) => `Bombe: Monat ${m} (×2)`,
   flipOnly: (n) => `Nur aufdecken (noch ${n})`,
   gukjinToPi: 'Chrysanthemen-Tier als Doppel-Spreu zählen',
@@ -137,7 +137,7 @@ export const T = {
     ttadak: 'Ttadak! Alle vier genommen. +1 Spreu',
     jjok: 'Jjok! +1 Spreu',
     sweep: 'Tisch abgeräumt! +1 Spreu',
-    shaken: (m) => `Heundeulgi mit Monat ${m}: Runde zählt doppelt`,
+    shaken: (m) => `Schütteln mit Monat ${m}: Runde zählt doppelt`,
     bomb: (m) => `Bombe mit Monat ${m}! +1 Spreu, Runde zählt doppelt`,
     go: (n) => `${n}. Go!`,
     stop: 'Stopp!',
@@ -156,7 +156,7 @@ export const T = {
   base: 'Punkte aus Karten',
   goBonus: (n) => `mit ${n} Go`,
   mult: {
-    shake: 'Heundeulgi',
+    shake: 'Schütteln',
     bomb: 'Bombe',
     piBak: 'Pi-Bak (wenig Spreu)',
     gwangBak: 'Gwang-Bak (keine Lichter)',

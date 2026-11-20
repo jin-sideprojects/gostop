@@ -247,6 +247,14 @@ export function applyAction(state, seat, action) {
       if (drawn) state.hands[seat].push(drawn);
       events.push({ type: 'bonusUsed', player: seat, card: action.cardId });
       stealPi(state, seat, RULES.steal.bonus, events);
+      // 가져온 패로 손에 같은 월 4장이 되면 대통령
+      if (drawn && !isBonus(drawn)) {
+        const cards = state.hands[seat].filter((id) => monthOf(id) === monthOf(drawn));
+        if (cards.length === 4) {
+          state.presidents.push({ seat, month: monthOf(drawn), cards });
+          askPresident(state);
+        }
+      }
       return events;
     }
     case 'go': {
@@ -420,6 +428,9 @@ function resolveCard(state, cardId, phase, events) {
       delete state.ppeokOwner[month];
       events.push({ type: self ? 'jaPpeok' : 'ppeokEat', player, month });
       stealPi(state, player, self ? RULES.steal.jaPpeok : RULES.steal.ppeok, events);
+    } else if (matches.length === 3) {
+      // 처음부터 바닥에 모여 있던 3장을 먹어도 피를 받는다
+      stealPi(state, player, RULES.steal.triple, events);
     }
   }
   return 'done';
@@ -438,14 +449,15 @@ export const otherSeats = (state, seat) => {
   return Array.from({ length: n - 1 }, (_, i) => (seat + 1 + i) % n).filter((s) => s !== state.out);
 };
 
-// 다른 사람 모두에게서 각각 피를 n장 가져온다: 일반 피 먼저, 없으면 쌍피. 국진과 보너스 피는 가져오지 않는다.
+// 다른 사람 모두에게서 각각 피를 n장 가져온다: 일반 피 먼저, 없으면 쌍피, 그것도 없으면 보너스 피. 국진은 가져오지 않는다.
 function stealPi(state, player, n, events) {
   for (const from of otherSeats(state, player)) {
     const cards = [];
     for (let i = 0; i < n; i++) {
-      const pool = state.captured[from].filter((id) => CARD_BY_ID[id].kind === 'pi' && !isBonus(id));
+      const pool = state.captured[from].filter((id) => CARD_BY_ID[id].kind === 'pi');
       if (!pool.length) break;
-      const pick = pool.reduce((a, b) => (CARD_BY_ID[b].piValue < CARD_BY_ID[a].piValue ? b : a));
+      const rank = (id) => CARD_BY_ID[id].piValue + (isBonus(id) ? 10 : 0); // 일반 피 < 쌍피 < 보너스 피
+      const pick = pool.reduce((a, b) => (rank(b) < rank(a) ? b : a));
       state.captured[from] = state.captured[from].filter((id) => id !== pick);
       state.captured[player].push(pick);
       cards.push(pick);

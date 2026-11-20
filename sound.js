@@ -162,6 +162,22 @@ export const sfx = {
       burst({ at: at + 0.008, dur: 0.06, freq: 2600, q: 1.2, gain: 0.6 });
     }
   },
+  // Münzen prasseln auf den Tisch, springen und rollen aus: "따르르르릉"
+  coins() {
+    if (!ready()) return;
+    // Zeitpunkte: erst dicht, dann immer lockerer (Münzen hüpfen aus); drei Haufen übereinander
+    let t = 0;
+    for (let i = 0; i < 34; i++) {
+      const f = 2300 + ((i * 7919) % 9) * 380; // Münzen klingen verschieden hoch
+      const loud = 0.5 * Math.max(0.25, 1 - i / 40);
+      burst({ at: t, dur: 0.012, freq: 6500, q: 0.9, gain: 0.5 * loud * 2, type: 'highpass' }); // Anschlag
+      tone({ at: t, dur: 0.16, from: f, gain: loud * 0.35, type: 'triangle' }); // Metallklang
+      tone({ at: t, dur: 0.09, from: f * 1.51, gain: loud * 0.22, type: 'sine' }); // Oberton (nicht ganzzahlig)
+      t += 0.028 + (i / 34) ** 2 * 0.1;
+    }
+    // zum Schluss das Nachrollen: ein kleines Wirbeln auf dem Boden
+    for (let i = 0; i < 6; i++) tone({ at: t + i * 0.025, dur: 0.1, from: 3200 - i * 150, gain: 0.07 * (1 - i / 7), type: 'triangle' });
+  },
   win() {
     if (!ready()) return;
     [523, 659, 784, 1047].forEach((f, i) => tone({ at: i * 0.11, dur: 0.22, from: f, gain: 0.16, type: 'triangle' }));

@@ -6,7 +6,7 @@ import { describeTurn, prospects } from './commentary.js';
 import { sfx, unlock, setEnabled, audioState } from './sound.js';
 import { playScenes, clearGhosts } from './scenes.js';
 import { shakeScreen } from './effects.js';
-import { sayGo, sayStop, setVoiceEnabled, unlockVoice } from './voice.js';
+import { sayGo, sayPpeok, sayStart, sayStop, saySteal, setVoiceEnabled, unlockVoice } from './voice.js';
 window.__matgoAudio = audioState;
 
 const app = document.getElementById('app');
@@ -246,6 +246,8 @@ async function onMessage(msg) {
       render();
       if (animated) clearGhosts();
       showEvents(events);
+      // Spielbeginn / neue Runde: "Start!" in jeder Sprache (nicht beim bloßen Wiederverbinden)
+      if (view.game && (events.some((e) => e.type === 'newRound') || (prev && !prev.game))) sayStart();
       return;
     }
     case 'full':
@@ -278,10 +280,17 @@ function toast(text, html = '') {
 function showEvents(events) {
   if (!view?.game) return;
   const me = view.game.you;
+  // Rufe in jeder Sprache: "쌌다!" bei Ppeok, "아싸!" wenn Spreu geklaut wird
+  const ppeoked = events.some((e) => e.type === 'ppeok');
+  if (ppeoked) sayPpeok();
+  if (events.some((e) => e.type === 'steal')) saySteal(ppeoked);
   for (const e of events) {
     const who = nameOf(e.player);
     const msg = T.events[e.type];
-    if (e.type === 'roundEnd' && e.result?.kind === 'win' && e.result.winner === me) setTimeout(() => sfx.win(), 900);
+    if (e.type === 'roundEnd' && e.result?.kind === 'win') {
+      setTimeout(() => sfx.coins(), 700); // wer auch gewinnt: Münzen prasseln
+      if (e.result.winner === me) setTimeout(() => sfx.win(), 900);
+    }
     // Ansage: Go (freche Frauenstimme) / Stopp (kühle Männerstimme)
     if (e.type === 'go') sayGo(e.count);
     if (e.type === 'stop') sayStop();

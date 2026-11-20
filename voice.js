@@ -41,14 +41,14 @@ export function pickVoiceFor(voices, lang, kind) {
   return order.find(kind === 'female' ? isFemale : isMale) ?? order[0];
 }
 
-function say(text, { pitch, rate, kind }) {
+function say(text, { pitch, rate, kind, lang = T.voiceLang, queue = false }) {
   const ss = hasWindow ? window.speechSynthesis : null;
   if (!enabled || !ss) return;
   try {
-    ss.cancel();
+    if (!queue) ss.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = T.voiceLang; // ohne passende Stimme wählt der Browser selbst eine dieser Sprache
-    const v = pickVoiceFor(ss.getVoices() ?? [], T.voiceLang, kind);
+    u.lang = lang; // ohne passende Stimme wählt der Browser selbst eine dieser Sprache
+    const v = pickVoiceFor(ss.getVoices() ?? [], lang, kind);
     if (v) u.voice = v;
     u.pitch = pitch;
     u.rate = rate;
@@ -67,6 +67,28 @@ export function sayGo(count = 1) {
 export function sayStop() {
   // tief, kurz, entschieden
   say(T.voiceStop, { pitch: 0.4, rate: 0.9, kind: 'male' });
+}
+
+// Diese drei Rufe sind in jeder Spielsprache gleich: Englisch "Start!", Koreanisch "아싸!" und "쌌다!"
+export const CALLS = Object.freeze({
+  start: { text: 'Start!', lang: 'en-US' },
+  steal: { text: '아싸!', lang: 'ko-KR' },
+  ppeok: { text: '쌌다!', lang: 'ko-KR' },
+});
+
+export function sayStart() {
+  // laut, munter, wie ein Ansager
+  say(CALLS.start.text, { lang: CALLS.start.lang, pitch: 1.3, rate: 0.9, kind: 'female' });
+}
+
+export function saySteal(queue = false) {
+  // freudig: Spreu geklaut
+  say(CALLS.steal.text, { lang: CALLS.steal.lang, pitch: 1.6, rate: 0.85, kind: 'female', queue });
+}
+
+export function sayPpeok(queue = false) {
+  // Ppeok: "쌌다!"
+  say(CALLS.ppeok.text, { lang: CALLS.ppeok.lang, pitch: 0.8, rate: 0.95, kind: 'male', queue });
 }
 
 // Stimmenliste lädt in manchen Browsern erst später
