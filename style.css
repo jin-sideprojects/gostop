@@ -266,3 +266,5 @@ body.scene .status { visibility: hidden; }
   88% { transform: translateY(-1.5px) rotate(-3deg); }
   94% { transform: translateY(0) rotate(0deg); }
 }
+
+.app-version { margin: 18px 0 0; font-size: 12px; color: var(--muted); opacity: 0.8; }

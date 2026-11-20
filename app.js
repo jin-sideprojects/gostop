@@ -446,8 +446,12 @@ function lobbyHtml() {
       <button class="btn big" data-cmd="join">${T.joinGame}</button></div>
     <p class="hint">${T.joinHelp}</p>
     ${lobbyError ? `<p class="error">${esc(lobbyError)}</p>` : ''}
+    ${versionHtml()}
   </div>`;
 }
+
+// kleine Versionsangabe (nur Tablet-App): zeigt, ob die neue Version angekommen ist
+const versionHtml = () => (CONFIG.version ? `<p class="app-version">Version ${esc(CONFIG.version)}</p>` : '');
 
 function hostCodeHtml() {
   if (session?.role !== 'host') return '';
@@ -479,7 +483,7 @@ function render() {
       <p class="here">${T.here(here, n)}</p>
       ${session?.role === 'host' && n === 2 ? `<p class="three-hint">${T.threeHint}</p>` : ''}
       <button class="btn primary big" data-cmd="solo">${n >= 3 ? T.fillBots : T.playSolo}</button>
-      ${optionHtml()}</div>`);
+      ${optionHtml()}${versionHtml()}</div>`);
   }
   renderGame(view.game);
 }
