@@ -1,7 +1,7 @@
 {
-  "name": "Matgo – Hwatu",
-  "short_name": "Matgo",
-  "description": "Hwatu (Matgo / Go-Stop) auf einem oder mehreren Tablets",
+  "name": "Go-Stop – Hwatu",
+  "short_name": "Go-Stop",
+  "description": "Online Hwatu (Go-Stop & Matgo) – auf Handy oder PC spielen",
   "lang": "de",
   "start_url": "./index.html",
   "scope": "./",

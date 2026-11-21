@@ -235,29 +235,47 @@ body.scene .status { visibility: hidden; }
 @keyframes card-shake { from { transform: rotate(-9deg) translateY(2px); } to { transform: rotate(9deg) translateY(-3px); } }
 
 /* ---------- Tablet-App: Startbildschirm und Code ---------- */
-body.in-lobby #hints-label, body.in-lobby #score-line { display: none; }
+body.in-lobby {
+  background-color: var(--felt-dark);
+  background-image:
+    radial-gradient(circle at 50% 18%, rgba(233, 181, 47, .07), transparent 58%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .022) 0 1px, transparent 1px 6px);
+}
+body.in-lobby #hints-label, body.in-lobby #score-line, body.in-lobby #rules-link { display: none; }
 @media (max-width: 480px) { body.in-lobby .brand { display: inline; } }
-.lobby { display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 28px; }
-.lobby-hero h1 { font-size: 46px; margin-bottom: 6px; letter-spacing: 2px; color: var(--gold); text-shadow: 0 2px 10px rgba(0, 0, 0, .35); }
-.lobby-sub { margin: 0; max-width: 420px; font-size: 15px; color: var(--chalk); opacity: .9; }
-.lobby-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 380px; }
-.lobby-card { background: rgba(0, 0, 0, .2); border: 1px solid rgba(255, 255, 255, .12); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.lobby-card .btn.big { width: 100%; }
-.btn.secondary { background: rgba(255, 255, 255, .14); color: var(--chalk); border: 1px solid rgba(255, 255, 255, .28); }
-.lobby .hint { margin: 0; max-width: 340px; font-size: 13px; color: var(--muted); }
+.lobby { display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 28px 16px 36px; }
+.lobby-hero { display: flex; flex-direction: column; align-items: center; }
+.lobby-crest { width: 120px; height: 120px; margin-bottom: 14px; border-radius: 50%; border: 2px solid rgba(233, 181, 47, .65); box-shadow: 0 6px 22px rgba(0, 0, 0, .35); overflow: hidden; background: #1d2e25; }
+.lobby-crest img { width: 100%; height: 100%; object-fit: cover; }
+.lobby-badge { display: inline-block; margin-bottom: 8px; padding: 4px 12px; border-radius: 20px; background: rgba(242, 194, 60, .14); border: 1px solid rgba(242, 194, 60, .42); color: var(--gold); font-size: 11.5px; font-weight: 700; letter-spacing: .8px; }
+.lobby-hero h1 { font-size: 44px; margin: 0 0 6px; letter-spacing: 2px; color: var(--gold); text-shadow: 0 2px 10px rgba(0, 0, 0, .35); }
+.lobby-sub { margin: 0; max-width: 380px; font-size: 14.5px; color: var(--muted); }
+.lobby-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 340px; }
+.lobby-actions .btn.big { width: 100%; }
+.btn.outline { background: transparent; color: var(--chalk); border: 1.5px solid rgba(255, 255, 255, .42); }
+.btn.outline:hover { background: rgba(255, 255, 255, .08); }
+.btn.secondary { background: rgba(255, 255, 255, .16); color: var(--chalk); border: 1px solid rgba(255, 255, 255, .28); }
 .lobby .error { color: #ffb4b4; font-weight: 600; margin: 0; }
 .join-row { display: flex; gap: 8px; width: 100%; }
-.join-row input { width: 120px; font-size: 26px; text-align: center; letter-spacing: 6px; border-radius: 10px; border: 0; padding: 8px; font-family: Georgia, serif; flex: 0 0 120px; }
+.join-row input { width: 124px; flex: 0 0 124px; font-size: 22px; text-align: center; letter-spacing: 3px; border-radius: 10px; border: 1.5px solid rgba(255, 255, 255, .28); background: rgba(0, 0, 0, .35); color: var(--chalk); padding: 8px 6px; font-family: Georgia, serif; box-shadow: inset 0 2px 6px rgba(0, 0, 0, .35); }
+.join-row input::placeholder { font-size: 14px; letter-spacing: 0; color: rgba(255, 255, 255, .5); font-family: system-ui, sans-serif; }
+.join-row input:focus { outline: none; border-color: var(--gold); }
 .join-row .btn.big { flex: 1; }
+.lobby-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .lobby-rules { display: inline-block; text-decoration: none; background: rgba(242, 194, 60, .14); color: var(--gold); border: 1px solid rgba(242, 194, 60, .45); border-radius: 10px; padding: 10px 18px; font-weight: 600; font-size: 14px; }
-.host-code { display: inline-flex; flex-direction: column; align-items: center; background: var(--paper); color: var(--ink); border-radius: 12px; padding: 10px 22px; margin: 6px auto 0; }
+.lobby-install { background: rgba(255, 255, 255, .14); color: var(--chalk); border: 1px solid rgba(255, 255, 255, .35); border-radius: 10px; padding: 10px 16px; font-weight: 600; font-size: 14px; }
+.host-code { display: inline-flex; flex-direction: column; align-items: center; background: var(--paper); color: var(--ink); border-radius: 12px; padding: 12px 22px; margin: 6px auto 0; }
 .host-code span { font-size: 13px; color: #6b6355; }
 .host-code b { font-family: Georgia, serif; font-size: 48px; letter-spacing: 8px; line-height: 1.1; }
 .host-code small { font-size: 12px; color: #6b6355; }
-.host-actions { display: flex; gap: 8px; margin-top: 8px; }
-.host-code .copy-invite { font-size: 13px; padding: 6px 12px; }
+.host-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+.host-code .invite-btn { font-size: 13px; padding: 8px 14px; border-radius: 8px; background: #fff; color: var(--ink); border: 1.5px solid #c7bda8; font-weight: 600; cursor: pointer; box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.host-code .invite-btn.primary-invite { background: #2f4a3c; color: #fff; border-color: #2f4a3c; }
 .qr-sheet { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.qr-img { border-radius: 8px; background: #fff; padding: 6px; }
+.qr-box { border-radius: 10px; background: #fff; padding: 10px; line-height: 0; box-shadow: 0 2px 10px rgba(0, 0, 0, .18); }
+.qr-url { margin: 0; padding: 6px 10px; border-radius: 8px; background: rgba(0, 0, 0, .06); font-family: monospace; font-size: 12px; word-break: break-all; color: #3d372c; max-width: 100%; }
+.qr-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.qr-actions .btn.secondary { background: #e8e2d3; color: var(--ink); border-color: #c7bda8; }
 .leave-btn { border: 0; background: rgba(255, 255, 255, 0.14); color: var(--chalk); border-radius: 14px; padding: 4px 10px; font-size: 13px; }
 
 .three-hint { max-width: 380px; margin: 0; font-size: 14px; color: var(--gold); }
@@ -289,3 +307,49 @@ body.in-lobby #hints-label, body.in-lobby #score-line { display: none; }
 }
 
 .app-version { margin: 18px 0 0; font-size: 12px; color: var(--muted); opacity: 0.8; }
+
+/* ---------- 규칙 & 48장 화투 도감 모달 ---------- */
+.guide-sheet { width: min(94vw, 760px); max-height: 88vh; display: flex; flex-direction: column; padding: 16px 18px; text-align: left; }
+.guide-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.guide-head h2 { margin: 0; font-size: 20px; }
+.guide-close { border: 0; background: rgba(0, 0, 0, .08); color: var(--ink); width: 32px; height: 32px; border-radius: 50%; font-size: 20px; line-height: 1; cursor: pointer; }
+.guide-tabs { display: flex; gap: 8px; border-bottom: 1.5px solid #dfd7c5; padding-bottom: 10px; margin-bottom: 12px; }
+.guide-tab { flex: 1; border: 1.5px solid #c7bda8; background: #fff; color: var(--ink); border-radius: 10px; padding: 8px 12px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.guide-tab.active { background: #2f4a3c; color: #fff; border-color: #2f4a3c; }
+.guide-body { overflow-y: auto; padding-right: 4px; flex: 1; }
+.guide-box { background: #f3ecda; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
+.guide-box h3, .guide-rules h3 { margin: 12px 0 6px; font-size: 15px; }
+.guide-box h3 { margin-top: 0; }
+.guide-box p { margin: 0; font-size: 14px; line-height: 1.5; }
+.rules-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 10px; }
+.rules-table th, .rules-table td { text-align: left; padding: 7px 6px; border-bottom: 1px solid #e6decb; vertical-align: top; }
+.rules-table th { width: 34%; font-weight: 600; color: #3d372c; }
+.guide-ext { margin: 14px 0 4px; text-align: center; }
+.guide-ext a { color: #a5122b; font-weight: 600; font-size: 14px; text-decoration: none; }
+.guide-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.guide-filter { border: 1px solid #c7bda8; background: #fff; color: var(--ink); border-radius: 16px; padding: 5px 11px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.guide-filter.active { background: #b8861b; color: #fff; border-color: #b8861b; }
+.enc-month { margin-bottom: 16px; }
+.enc-month h3 { margin: 0 0 8px; font-size: 14px; color: #2f4a3c; border-bottom: 1px solid #e6decb; padding-bottom: 4px; }
+.enc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 520px) { .enc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.enc-card { background: #f8f4e8; border: 1px solid #e3dccb; border-radius: 10px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.enc-art { width: 68px; }
+.enc-art .card-svg { width: 100%; height: auto; display: block; }
+.enc-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.enc-badge { font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 6px; background: #e6dfd0; color: #3d372c; }
+.enc-badge.gold { background: #f2c23c; color: #3a2900; }
+.enc-badge.bird { background: #2c6e91; color: #fff; }
+.enc-badge.yeol { background: #3d6a4b; color: #fff; }
+.enc-badge.tti { background: #8c5a3c; color: #fff; }
+.enc-badge.special { background: #6b3fa0; color: #fff; }
+.enc-badge.rib-hong { background: #c8202b; color: #fff; }
+.enc-badge.rib-cheong { background: #1f4c9e; color: #fff; }
+.enc-badge.rib-cho { background: #2e8b3e; color: #fff; }
+
+/* ---------- 인게임 실시간 학습 힌트 패널 ---------- */
+.assist-panel { margin-top: 8px; padding: 8px 12px; border-radius: 10px; background: rgba(0, 0, 0, .24); border: 1px solid rgba(242, 194, 60, .3); display: flex; flex-direction: column; gap: 6px; }
+.assist-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.assist-badge { font-size: 12.5px; font-weight: 700; color: #3a2900; background: var(--gold); padding: 3px 9px; border-radius: 12px; }
+.assist-tip { font-size: 13px; color: var(--muted); min-height: 18px; }
+.assist-tip.active { color: #ffe78a; font-weight: 600; }

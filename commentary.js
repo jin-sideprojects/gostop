@@ -158,3 +158,51 @@ function item(key, have, need, missing, possible, points) {
   }
   return { key, have, need, missing, possible, points, text };
 }
+
+/**
+ * 현재 손패와 바닥패를 분석해 전략 가이드(흔듦/폭탄 가능 등) 목록을 반환한다.
+ * @param {string[]} hand
+ * @param {string[]} floor
+ * @returns {string[]}
+ */
+export function strategyHints(hand = [], floor = []) {
+  const tips = [];
+  const byMonth = {};
+  for (const id of hand) {
+    const m = cardInfo(id).month;
+    if (m > 0) byMonth[m] = (byMonth[m] ?? 0) + 1;
+  }
+  for (const [m, cnt] of Object.entries(byMonth)) {
+    if (cnt < 3) continue;
+    const onFloor = floor.some((id) => cardInfo(id).month === Number(m));
+    tips.push(onFloor ? T.assistBomb(Number(m)) : T.assistShake(Number(m)));
+  }
+  return tips;
+}
+
+/**
+ * 특정 손패를 내려고 할 때 바닥패·기보유패 기준의 실시간 한 줄 힌트를 반환한다.
+ * @param {string} cardId
+ * @param {string[]} floor
+ * @param {string[]} mineCaptured
+ * @returns {string}
+ */
+export function cardPlayHint(cardId, floor = [], mineCaptured = []) {
+  const info = cardInfo(cardId);
+  if (info.bonus) return `${T.bonusName} +${info.piValue}`;
+  const matches = floor.filter((id) => cardInfo(id).month === info.month);
+  if (!matches.length) return '';
+
+  const gained = [cardId, ...matches];
+  const hints = [];
+  for (const [key, setIds] of Object.entries(SETS)) {
+    const gainInSet = gained.filter((id) => setIds.includes(id) && !mineCaptured.includes(id));
+    if (!gainInSet.length) continue;
+    const after = setIds.filter((id) => mineCaptured.includes(id) || gained.includes(id)).length;
+    if (after === 3) hints.push(T.assistSetComplete(T.setLabel[key], SET_POINTS[key]));
+    else hints.push(T.assistSetProgress(T.setLabel[key], 3 - after));
+  }
+  if (gained.some((id) => cardInfo(id).kind === 'gwang')) hints.push(T.assistGainGwang);
+  if (gained.some((id) => cardInfo(id).piValue === 2)) hints.push(T.assistGainSsangpi);
+  return hints.length ? hints.join(' · ') : T.assistMatchCount(matches.length);
+}

@@ -392,8 +392,11 @@ function resolvePlayWithFlip(state, ctx, events) {
     if (state.ppeokCount[player] >= RULES.threePpeok) ctx.threePpeok = true;
   } else if (k === 2) {
     capture(state, player, [played, flipped, ...floorSame], events);
-    events.push({ type: 'ttadak', player, month });
-    stealPi(state, player, RULES.steal.ttadak, events);
+    // 손에 남은 마지막 1장(막패)에서는 따닥 미적용
+    if (state.hands[player].length > 0) {
+      events.push({ type: 'ttadak', player, month });
+      stealPi(state, player, RULES.steal.ttadak, events);
+    }
   } else if (k === 0) {
     capture(state, player, [played, flipped], events);
     events.push({ type: 'jjok', player, month });
@@ -449,17 +452,20 @@ export const otherSeats = (state, seat) => {
   return Array.from({ length: n - 1 }, (_, i) => (seat + 1 + i) % n).filter((s) => s !== state.out);
 };
 
-// 다른 사람 모두에게서 각각 피를 n장 가져온다: 일반 피 먼저, 없으면 쌍피, 그것도 없으면 보너스 피. 국진은 가져오지 않는다.
+// 다른 사람 모두에게서 각각 피를 n장 가져온다: 일반 피(1점) 우선, 없으면 쌍피(2점, 피로 쓰는 국진 포함) → 쓰리피(3점) 순.
 function stealPi(state, player, n, events) {
   for (const from of otherSeats(state, player)) {
     const cards = [];
     for (let i = 0; i < n; i++) {
-      const pool = state.captured[from].filter((id) => CARD_BY_ID[id].kind === 'pi');
+      const isPi = (id) => CARD_BY_ID[id].kind === 'pi' || (id === GUKJIN && state.gukjinAs[from] === 'pi');
+      const pool = state.captured[from].filter(isPi);
       if (!pool.length) break;
-      const rank = (id) => CARD_BY_ID[id].piValue + (isBonus(id) ? 10 : 0); // 일반 피 < 쌍피 < 보너스 피
+      const piVal = (id) => (id === GUKJIN ? RULES.gukjinPiValue : CARD_BY_ID[id].piValue);
+      const rank = (id) => piVal(id) * 10 + (isBonus(id) ? 1 : 0); // 1점 일반피 < 2점 쌍피(11/12/국진) < 2점 보너스 < 3점 쓰리피
       const pick = pool.reduce((a, b) => (rank(b) < rank(a) ? b : a));
       state.captured[from] = state.captured[from].filter((id) => id !== pick);
       state.captured[player].push(pick);
+      if (pick === GUKJIN) state.gukjinChoice = player;
       cards.push(pick);
     }
     if (cards.length) events.push({ type: 'steal', player, from, cards });
@@ -473,7 +479,8 @@ const currentScore = (state, seat) => scoreOf(state, seat).total;
 function finishTurn(state, events) {
   const player = state.ctx.player;
   const last = isFinalTurnOver(state);
-  if (state.floor.length === 0 && !last) {
+  // 손에 남은 마지막 1장(막패)에서는 싹쓸이 미적용
+  if (state.floor.length === 0 && state.hands[player].length > 0) {
     events.push({ type: 'sweep', player });
     stealPi(state, player, RULES.steal.sweep, events);
   }

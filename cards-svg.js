@@ -255,6 +255,16 @@ function kindMark(info) {
   return '';
 }
 
+function bandIcon(info) {
+  if (info.godori || info.id === 'm12-yeol') {
+    return '<path d="M5 86 q2.5 -3.5 5.5 -1 l2.5 -1.5 l-1 2.2 q-2.2 2.8 -7 0.3z" fill="#ffe066"/>';
+  }
+  if (['hong', 'cheong', 'cho'].includes(info.ribbon)) {
+    return '<circle cx="6.5" cy="85.2" r="1.4" fill="#fff"/><circle cx="10.2" cy="85.2" r="1.4" fill="#fff"/><circle cx="13.9" cy="85.2" r="1.4" fill="#fff"/>';
+  }
+  return '';
+}
+
 function bandColor(info) {
   if (info.bonus) return '#b8861b';
   if (info.kind === 'gwang') return '#b8861b';
@@ -291,6 +301,7 @@ ${info.bonus ? '' : kindMark(info)}
 ${info.bonus ? '' : `<circle cx="9" cy="10" r="7.5" fill="rgba(255,250,240,.88)"/>
 <text x="9" y="14" text-anchor="middle" font-size="11" font-weight="700" fill="${INK}" font-family="Georgia, 'Times New Roman', serif">${info.month}</text>`}
 <path d="M1 79 H59 V86 A5 5 0 0 1 54 91 H6 A5 5 0 0 1 1 86Z" fill="${bandColor(info)}"/>
+${bandIcon(info)}
 <text x="30" y="88.4" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui, sans-serif">${kind}</text>
 </svg>`;
 }

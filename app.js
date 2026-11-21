@@ -2,11 +2,13 @@ import { T, setLang, getLang, LANG_NAMES } from './i18n.js';
 import { CONFIG } from './config.js';
 import { wsTransport, HostSession, guestTransport, newCode } from './net.js';
 import { cardInfo, cardSvg, cardBackSvg, cardLabel } from './cards-svg.js';
-import { describeTurn, prospects } from './commentary.js';
+import { describeTurn, prospects, strategyHints, cardPlayHint } from './commentary.js';
 import { sfx, unlock, setEnabled, audioState } from './sound.js';
 import { playScenes, clearGhosts } from './scenes.js';
 import { shakeScreen } from './effects.js';
 import { sayGo, sayPpeok, sayStart, sayStop, saySteal, setVoiceEnabled, unlockVoice } from './voice.js';
+import { qrSvg } from './qr-invite.js';
+import { openGuideModal } from './guide-modal.js';
 window.__matgoAudio = audioState;
 
 const app = document.getElementById('app');
@@ -48,7 +50,25 @@ let retry = null;
 let noHostTries = 0;
 const MAX_NOHOST_RETRIES = 3;
 let pendingAutoSolo = false;
+let deferredPrompt = null;
 let busy = false; // während einer Animation keine Eingaben
+
+const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const isIosSafari = () =>
+  (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+  /Safari/i.test(navigator.userAgent) &&
+  !/CriOS|FxiOS/i.test(navigator.userAgent);
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (status === 'lobby') render();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  if (status === 'lobby') render();
+});
 let report = []; // Sätze zum letzten Zug
 
 // ---------- Sprache ----------
@@ -336,6 +356,10 @@ function showEvents(events) {
     if (e.type === 'roundEnd' && e.result?.kind === 'win') {
       setTimeout(() => sfx.coins(), 700); // wer auch gewinnt: Münzen prasseln
       if (e.result.winner === me) setTimeout(() => sfx.win(), 900);
+      if (hints && e.result.settlement?.payments) {
+        const baks = new Set(e.result.settlement.payments.flatMap((p) => p.multipliers.map((m) => m.kind)));
+        for (const bk of ['piBak', 'gwangBak']) if (baks.has(bk) && T.eventHelp?.[bk]) toast(T.eventHelp[bk]);
+      }
     }
     // Ansage: Go (freche Frauenstimme) / Stopp (kühle Männerstimme)
     if (e.type === 'go') sayGo(e.count);
@@ -348,13 +372,15 @@ function showEvents(events) {
       continue;
     }
     if (!msg) continue;
+    const help = hints && T.eventHelp?.[e.type] ? ` (${T.eventHelp[e.type]})` : '';
     if (e.type === 'shaken') {
       sfx.rattle();
       shakeScreen(10, 700);
       revealShake(e);
-    } else if (e.type === 'bomb') toast(`${who}: ${msg(e.month)}`);
+      if (help) toast(`${who}: ${T.events.shaken}${help}`);
+    } else if (e.type === 'bomb') toast(`${who}: ${msg(e.month)}${help}`);
     else if (e.type === 'go') toast(`${who}: ${msg(e.count)}`);
-    else toast(`${who}: ${msg}`);
+    else toast(`${who}: ${msg}${help}`);
   }
 }
 
@@ -405,7 +431,10 @@ app.addEventListener('click', (e) => {
     return startSession({ role: 'host', code: newCode() });
   }
   if (el.dataset.cmd === 'copy-invite') return copyInviteLink();
+  if (el.dataset.cmd === 'share-invite') return shareInviteLink();
   if (el.dataset.cmd === 'show-qr') return showQrModal();
+  if (el.dataset.cmd === 'open-guide') return openGuideModal('rules');
+  if (el.dataset.cmd === 'install-app') return installApp();
   if (el.dataset.cmd === 'join') {
     const code = (document.getElementById('join-code')?.value || '').replace(/\D/g, '');
     if (code.length !== 4) {
@@ -438,6 +467,32 @@ app.addEventListener('click', (e) => {
 app.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'join-code') {
     app.querySelector('[data-cmd="join"]')?.click();
+  }
+});
+
+function updateAssistTip(target) {
+  if (!hints || !view?.game) return;
+  const cardEl = target?.closest?.('.hand .card[data-id]');
+  const tipEl = document.getElementById('assist-tip');
+  if (!cardEl || !tipEl) return;
+  const text = cardPlayHint(cardEl.dataset.id, view.game.floor, view.game.captured.mine);
+  tipEl.textContent = text || T.assistHoverTip;
+  tipEl.classList.toggle('active', Boolean(text));
+}
+
+function resetAssistTip() {
+  const tipEl = document.getElementById('assist-tip');
+  if (!tipEl) return;
+  tipEl.textContent = T.assistHoverTip;
+  tipEl.classList.remove('active');
+}
+
+app.addEventListener('pointerover', (e) => updateAssistTip(e.target));
+app.addEventListener('focusin', (e) => updateAssistTip(e.target));
+app.addEventListener('touchstart', (e) => updateAssistTip(e.target), { passive: true });
+app.addEventListener('pointerout', (e) => {
+  if (e.target.closest?.('.hand .card[data-id]') && !e.relatedTarget?.closest?.('.hand .card[data-id]')) {
+    resetAssistTip();
   }
 });
 
@@ -510,28 +565,24 @@ function floorHtml(g, hintMonths = new Set()) {
 function lobbyHtml() {
   return `<div class="center-msg lobby">
     <div class="lobby-hero">
+      <div class="lobby-crest" aria-hidden="true"><img src="assets/cards/m08-gwang.webp" alt=""></div>
+      <span class="lobby-badge">${T.lobbyBadge}</span>
       <h1>${T.title}</h1>
       <p class="lobby-sub">${T.lobbySub}</p>
     </div>
     <div class="lobby-actions">
-      <div class="lobby-card">
-        <button class="btn primary big" data-cmd="quick-solo">${T.quickSolo}</button>
-        <p class="hint">${T.quickSoloHelp}</p>
-      </div>
-      <div class="lobby-card">
-        <button class="btn secondary big" data-cmd="host">${T.createRoom}</button>
-        <p class="hint">${T.createRoomHelp}</p>
-      </div>
-      <div class="lobby-card">
-        <div class="join-row">
-          <input id="join-code" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="${T.codePlaceholder}" aria-label="${T.codePlaceholder}">
-          <button class="btn big" data-cmd="join">${T.joinGame}</button>
-        </div>
-        <p class="hint">${T.joinHelp}</p>
+      <button class="btn primary big" data-cmd="host">${T.createRoom}</button>
+      <button class="btn outline big" data-cmd="quick-solo">${T.quickSolo}</button>
+      <div class="join-row">
+        <input id="join-code" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="${esc(T.codePlaceholder)}" aria-label="${esc(T.codePlaceholder)}">
+        <button class="btn secondary big" data-cmd="join">${T.joinGame}</button>
       </div>
     </div>
     ${lobbyError ? `<p class="error">${esc(lobbyError)}</p>` : ''}
-    <a class="btn lobby-rules" href="${T.rulesHref}" target="_blank" rel="noopener">${T.lobbyRulesBtn}</a>
+    <div class="lobby-footer">
+      <button class="btn lobby-rules" data-cmd="open-guide">${T.lobbyRulesBtn}</button>
+      ${!isStandalone() && (deferredPrompt || isIosSafari()) ? `<button class="btn lobby-install" data-cmd="install-app">${T.installApp}${CONFIG.size ? ` (${esc(CONFIG.size)})` : ''}</button>` : ''}
+    </div>
     ${versionHtml()}
   </div>`;
 }
@@ -539,39 +590,92 @@ function lobbyHtml() {
 // kleine Versionsangabe (nur Tablet-App): zeigt, ob die neue Version angekommen ist
 const versionHtml = () => (CONFIG.version ? `<p class="app-version">Version ${esc(CONFIG.version)}</p>` : '');
 
+async function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice.catch(() => null);
+    deferredPrompt = null;
+    return render();
+  }
+  if (isIosSafari()) {
+    document.getElementById('ios-install-modal')?.remove();
+    const el = document.createElement('div');
+    el.id = 'ios-install-modal';
+    el.className = 'overlay';
+    el.innerHTML = `<div class="sheet qr-sheet" role="dialog" aria-modal="true">
+      <h2>${esc(T.iosInstallTitle)}</h2>
+      <p>${esc(T.iosInstallHelp)}</p>
+      <button class="btn primary" id="ios-install-close">${esc(T.close)}</button>
+    </div>`;
+    document.body.append(el);
+    el.addEventListener('click', (ev) => {
+      if (ev.target === el || ev.target.id === 'ios-install-close') el.remove();
+    });
+  }
+}
+
+const inviteUrl = (code) => `${location.origin}${location.pathname}?join=${code}`;
+
 /**
- * 현재 방의 원클릭 초대 URL을 생성해 클립보드에 복사한다.
+ * 현재 방의 원클릭 초대 URL을 생성해 클립보드에 복사한다. (구형 브라우저 폴백 포함)
  */
 async function copyInviteLink() {
   if (!session?.code) return;
-  const url = `${location.origin}${location.pathname}?join=${session.code}`;
+  const url = inviteUrl(session.code);
   try {
-    await navigator.clipboard.writeText(url);
-    toast(T.inviteCopied);
-  } catch {
-    prompt(T.copyInvite, url);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+      return toast(T.inviteCopied);
+    }
+  } catch { /* fallback below */ }
+  const ta = document.createElement('textarea');
+  ta.value = url;
+  ta.setAttribute('readonly', '');
+  Object.assign(ta.style, { position: 'fixed', opacity: '0' });
+  document.body.append(ta);
+  ta.select();
+  const ok = document.execCommand?.('copy');
+  ta.remove();
+  if (ok) return toast(T.inviteCopied);
+  prompt(T.copyInvite, url);
+}
+
+/**
+ * 모바일/지원 브라우저에서 네이티브 공유 시트(카카오톡, 메시지 등)를 연다.
+ */
+async function shareInviteLink() {
+  if (!session?.code || typeof navigator.share !== 'function') return copyInviteLink();
+  const url = inviteUrl(session.code);
+  try {
+    await navigator.share({ title: T.title, text: T.shareText(session.code), url });
+  } catch (err) {
+    if (err?.name !== 'AbortError') copyInviteLink();
   }
 }
 
 /**
- * 방 초대 URL의 QR 코드를 모달로 표시한다.
+ * 방 초대 URL의 로컬 생성 QR 코드를 모달로 표시한다.
  */
 function showQrModal() {
   if (!session?.code) return;
   document.getElementById('qr-modal')?.remove();
-  const url = `${location.origin}${location.pathname}?join=${session.code}`;
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(url)}`;
+  const url = inviteUrl(session.code);
   const el = document.createElement('div');
   el.id = 'qr-modal';
   el.className = 'overlay';
   el.innerHTML = `<div class="sheet qr-sheet" role="dialog" aria-modal="true">
     <h2>${esc(T.qrTitle)}</h2>
-    <img class="qr-img" src="${qrSrc}" alt="QR Code" width="220" height="220">
+    <div class="qr-box">${qrSvg(url, 220)}</div>
+    <p class="qr-url">${esc(url)}</p>
     <p>${esc(T.qrHelp)}</p>
-    <button class="btn primary" id="qr-close">${esc(T.close)}</button>
+    <div class="qr-actions">
+      <button class="btn secondary" id="qr-copy">${esc(T.copyInvite)}</button>
+      <button class="btn primary" id="qr-close">${esc(T.close)}</button>
+    </div>
   </div>`;
   document.body.append(el);
   el.addEventListener('click', (ev) => {
+    if (ev.target.id === 'qr-copy') return copyInviteLink();
     if (ev.target === el || ev.target.id === 'qr-close') el.remove();
   });
 }
@@ -579,10 +683,14 @@ function showQrModal() {
 function hostCodeHtml() {
   if (session?.role !== 'host') return '';
   const st = peerStatus === 'online' ? T.codeOnline : peerStatus === 'taken' ? T.codeTaken : peerStatus === 'offline' ? T.codeOffline : T.codeConnecting;
+  const shareBtn = typeof navigator.share === 'function'
+    ? `<button class="btn invite-btn" data-cmd="share-invite">${esc(T.shareInvite)}</button>`
+    : '';
   return `<div class="host-code"><span>${T.codeLabel}</span><b>${session.code}</b><small>${esc(st)}</small>
     <div class="host-actions">
-      <button class="btn copy-invite" data-cmd="copy-invite">${esc(T.copyInvite)}</button>
-      <button class="btn copy-invite" data-cmd="show-qr">${esc(T.showQr)}</button>
+      <button class="btn invite-btn primary-invite" data-cmd="copy-invite">${esc(T.copyInvite)}</button>
+      ${shareBtn}
+      <button class="btn invite-btn" data-cmd="show-qr">${esc(T.showQr)}</button>
     </div></div>`;
 }
 
@@ -590,6 +698,7 @@ function render() {
   const isLobby = status === 'lobby';
   document.body.classList.toggle('in-lobby', isLobby);
   document.getElementById('hints-label')?.toggleAttribute('hidden', isLobby);
+  document.getElementById('rules-link')?.toggleAttribute('hidden', isLobby);
   document.getElementById('leave-btn')?.toggleAttribute('hidden', !(CONFIG.mode === 'app' && session));
   if (isLobby) {
     scoreLine.textContent = '';
@@ -654,7 +763,14 @@ function chancesHtml(g) {
     const rest = [...g.captured.mine, ...g.others.filter((x) => x !== o).flatMap((x) => x.captured)];
     blocks.push(`<div><h3>${T.chances}: ${esc(nameOf(o.seat))}</h3>${ul(show(prospects(o.captured, rest, o.gukjinAs, opts)))}</div>`);
   }
-  return `<section class="chances ${g.others.length > 1 ? 'three' : ''}" aria-label="${T.chances}">${blocks.join('')}</section>`;
+  const assist = hints && !sittingOut ? assistPanelHtml(g) : '';
+  return `${assist}<section class="chances ${g.others.length > 1 ? 'three' : ''}" aria-label="${T.chances}">${blocks.join('')}</section>`;
+}
+
+function assistPanelHtml(g) {
+  const tips = strategyHints(g.hand, g.floor);
+  const badges = tips.map((t) => `<span class="assist-badge">${esc(t)}</span>`).join('');
+  return `<div class="assist-panel">${badges ? `<div class="assist-badges">${badges}</div>` : ''}<div id="assist-tip" class="assist-tip">${esc(T.assistHoverTip)}</div></div>`;
 }
 
 function opponentHtml(o, compact) {
@@ -830,6 +946,10 @@ function resultHtml(g) {
     <table class="settle">${rows.join('')}</table>${totals}${next}</div></div>`;
 }
 
+document.getElementById('rules-link')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  openGuideModal('rules');
+});
 document.getElementById('leave-btn')?.addEventListener('click', (e) => {
   const el = e.currentTarget;
   if (el.dataset.armed) return leaveSession();
