@@ -289,7 +289,7 @@ export function cardSvg(id) {
   return `<svg viewBox="0 0 60 92" class="card-svg${fx}"${delay} role="img" aria-label="${cardLabel(id)}">
 <defs><clipPath id="${clip}"><rect x="1" y="1" width="58" height="78" rx="4.5"/></clipPath>${shine}</defs>
 <rect x="1" y="1" width="58" height="90" rx="5" fill="${FACE}" stroke="#a89c82" stroke-width="1"/>
-<g clip-path="url(#${clip})">${art(info)}${sweep}</g>
+<g clip-path="url(#${clip})">${info.bonus ? art(info) : `<image href="assets/cards/${id}.webp" x="1" y="1" width="58" height="78" preserveAspectRatio="xMidYMid slice"/>`}${sweep}</g>
 ${info.bonus ? '' : kindMark(info)}
 ${info.bonus ? '' : `<circle cx="9" cy="10" r="7.5" fill="rgba(255,250,240,.88)"/>
 <text x="9" y="14" text-anchor="middle" font-size="11" font-weight="700" fill="${INK}" font-family="Georgia, 'Times New Roman', serif">${info.month}</text>`}

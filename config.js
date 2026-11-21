@@ -1,2 +1,2 @@
 // automatisch erzeugt (npm run build:web)
-export const CONFIG = { mode: 'app', version: '20.11.2026 12:54' };
+export const CONFIG = { mode: 'app', version: '21.11.2026 15:20' };
