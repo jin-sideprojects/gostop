@@ -45,6 +45,9 @@ let status = 'connecting'; // connecting | open | reconnecting | full | replaced
 let view = null; // RoomView
 let legal = [];
 let retry = null;
+let noHostTries = 0;
+const MAX_NOHOST_RETRIES = 3;
+let pendingAutoSolo = false;
 let busy = false; // während einer Animation keine Eingaben
 let report = []; // Sätze zum letzten Zug
 
@@ -119,25 +122,27 @@ async function connect() {
     }
     if (session.role === 'host') {
       if (!host) {
-        const saved = JSON.parse(store.get(`matgo-room-${session.code}`) || 'null');
-        host = await HostSession.create({
-          code: session.code,
-          saved,
-          onSave: (data) => store.set(`matgo-room-${session.code}`, JSON.stringify(data)),
-          onPeerStatus: (st) => {
-            peerStatus = st;
-            render();
-          },
-        });
+        try {
+          const saved = JSON.parse(store.get(`matgo-room-${session.code}`) || 'null');
+          host = await HostSession.create({
+            code: session.code,
+            saved,
+            onSave: (data) => store.set(`matgo-room-${session.code}`, JSON.stringify(data)),
+            onCodeChange: updateHostCode,
+            onPeerStatus: (st) => {
+              peerStatus = st;
+              render();
+            },
+          });
+        } catch (err) {
+          console.error(err);
+          lobbyError = String(err?.message || err);
+          return leaveSession();
+        }
       }
       transport = host.localTransport();
     } else {
-      transport = guestTransport(session.code, (why) => {
-        if (why === 'noHost' && !view) {
-          lobbyError = T.noHost(session.code);
-          leaveSession();
-        }
-      });
+      transport = guestTransport(session.code, handleGuestError);
     }
   } else {
     transport = wsTransport();
@@ -161,12 +166,40 @@ async function connect() {
   });
 }
 
+/**
+ * 방 코드 충돌 시 새로 발급된 코드로 세션과 저장소를 갱신한다.
+ * @param {string} nextCode
+ */
+function updateHostCode(nextCode) {
+  if (!session || session.role !== 'host') return;
+  const prev = store.get(`matgo-room-${session.code}`);
+  if (prev) store.set(`matgo-room-${nextCode}`, prev);
+  session.code = nextCode;
+  store.set('matgo-session', JSON.stringify(session));
+  render();
+}
+
+/**
+ * 게스트 연결 오류 처리. 호스트가 잠깐 백그라운드에 있을 수 있어 최대 3회 재시도한다.
+ * @param {string} why
+ */
+function handleGuestError(why) {
+  if (why !== 'noHost' || view) return;
+  if (noHostTries < MAX_NOHOST_RETRIES) {
+    noHostTries += 1;
+    return;
+  }
+  lobbyError = T.noHost(session.code);
+  leaveSession();
+}
+
 // Tablet-App: Sitzung beginnen / verlassen
 function startSession(s) {
   session = s;
   store.set('matgo-session', JSON.stringify(s));
   status = 'connecting';
   view = null;
+  noHostTries = 0;
   lobbyError = '';
   render();
   connect();
@@ -174,6 +207,8 @@ function startSession(s) {
 
 function leaveSession() {
   clearTimeout(retry);
+  noHostTries = 0;
+  pendingAutoSolo = false;
   const t = transport;
   transport = null;
   t?.close();
@@ -191,18 +226,22 @@ function leaveSession() {
 
 // Bildschirm wieder an: Verbindung prüfen. Eine Verbindung kann "offen" aussehen, aber tot sein.
 let watchdog = null;
-document.addEventListener('visibilitychange', () => {
+/**
+ * 백그라운드 복귀 시 호스트는 시그널링 재연결, 게스트는 세션 생존 확인을 수행한다.
+ */
+function onVisibilityChange() {
   if (document.visibilityState !== 'visible' || ['full', 'replaced', 'reset', 'lobby'].includes(status)) return;
-  if (transport?.isOpen()) {
-    transport.send({ t: 'hello', token: store.get(tokenKey()) });
-    if (session?.role === 'host') return; // eigener Raum im selben Gerät
-    clearTimeout(watchdog);
-    const t = transport;
-    watchdog = setTimeout(() => t.close(), 3000); // keine Antwort → neu verbinden
-  } else {
-    connect();
+  if (session?.role === 'host') {
+    if (host?.peer?.disconnected && !host.peer.destroyed) host.peer.reconnect();
+    return;
   }
-});
+  if (!transport?.isOpen()) return connect();
+  transport.send({ t: 'hello', token: store.get(tokenKey()) });
+  clearTimeout(watchdog);
+  const t = transport;
+  watchdog = setTimeout(() => t.close(), 3000); // keine Antwort → neu verbinden
+}
+document.addEventListener('visibilitychange', onVisibilityChange);
 
 function send(msg) {
   if (transport?.isOpen()) transport.send(msg);
@@ -218,9 +257,11 @@ async function onMessage(msg) {
   switch (msg.t) {
     case 'welcome':
       store.set(tokenKey(), msg.token);
+      noHostTries = 0;
       status = 'open';
       break;
     case 'state': {
+      noHostTries = 0;
       status = 'open';
       const prev = view;
       const events = msg.events ?? [];
@@ -238,6 +279,11 @@ async function onMessage(msg) {
       }
       view = msg.view;
       legal = view.game ? view.game.legal : [];
+      if (view.phase === 'waiting' && pendingAutoSolo) {
+        pendingAutoSolo = false;
+        send({ t: 'solo' });
+        return;
+      }
       if (view.game) {
         const lines = describeTurn(events, view.game.you, nameOf);
         if (lines.length) report = lines;
@@ -350,7 +396,16 @@ app.addEventListener('click', (e) => {
   if (!el || el.disabled || busy) return;
   if (el.dataset.cmd === 'next') return send({ t: 'nextRound' });
   if (el.dataset.cmd === 'solo') return send({ t: 'solo' });
-  if (el.dataset.cmd === 'host') return startSession({ role: 'host', code: newCode() });
+  if (el.dataset.cmd === 'quick-solo') {
+    pendingAutoSolo = true;
+    return startSession({ role: 'host', code: newCode() });
+  }
+  if (el.dataset.cmd === 'host') {
+    pendingAutoSolo = false;
+    return startSession({ role: 'host', code: newCode() });
+  }
+  if (el.dataset.cmd === 'copy-invite') return copyInviteLink();
+  if (el.dataset.cmd === 'show-qr') return showQrModal();
   if (el.dataset.cmd === 'join') {
     const code = (document.getElementById('join-code')?.value || '').replace(/\D/g, '');
     if (code.length !== 4) {
@@ -378,6 +433,12 @@ app.addEventListener('click', (e) => {
   if (!action) return;
   if (action.type === 'play' || action.type === 'useBonus') el.classList.add('picked'); // sofortiges Anheben beim Antippen
   send({ t: 'action', action });
+});
+
+app.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'join-code') {
+    app.querySelector('[data-cmd="join"]')?.click();
+  }
 });
 
 // Bonus-Option (Kontrollkästchen im Warte- und Ergebnisfenster)
@@ -448,13 +509,29 @@ function floorHtml(g, hintMonths = new Set()) {
 
 function lobbyHtml() {
   return `<div class="center-msg lobby">
-    <h1>${T.title}</h1><p>${T.lobbySub}</p>
-    <button class="btn primary big" data-cmd="host">${T.startGame}</button>
-    <p class="hint">${T.startGameHelp}</p>
-    <div class="join-row"><input id="join-code" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="${T.codePlaceholder}" aria-label="${T.codePlaceholder}">
-      <button class="btn big" data-cmd="join">${T.joinGame}</button></div>
-    <p class="hint">${T.joinHelp}</p>
+    <div class="lobby-hero">
+      <h1>${T.title}</h1>
+      <p class="lobby-sub">${T.lobbySub}</p>
+    </div>
+    <div class="lobby-actions">
+      <div class="lobby-card">
+        <button class="btn primary big" data-cmd="quick-solo">${T.quickSolo}</button>
+        <p class="hint">${T.quickSoloHelp}</p>
+      </div>
+      <div class="lobby-card">
+        <button class="btn secondary big" data-cmd="host">${T.createRoom}</button>
+        <p class="hint">${T.createRoomHelp}</p>
+      </div>
+      <div class="lobby-card">
+        <div class="join-row">
+          <input id="join-code" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="${T.codePlaceholder}" aria-label="${T.codePlaceholder}">
+          <button class="btn big" data-cmd="join">${T.joinGame}</button>
+        </div>
+        <p class="hint">${T.joinHelp}</p>
+      </div>
+    </div>
     ${lobbyError ? `<p class="error">${esc(lobbyError)}</p>` : ''}
+    <a class="btn lobby-rules" href="${T.rulesHref}" target="_blank" rel="noopener">${T.lobbyRulesBtn}</a>
     ${versionHtml()}
   </div>`;
 }
@@ -462,15 +539,59 @@ function lobbyHtml() {
 // kleine Versionsangabe (nur Tablet-App): zeigt, ob die neue Version angekommen ist
 const versionHtml = () => (CONFIG.version ? `<p class="app-version">Version ${esc(CONFIG.version)}</p>` : '');
 
+/**
+ * 현재 방의 원클릭 초대 URL을 생성해 클립보드에 복사한다.
+ */
+async function copyInviteLink() {
+  if (!session?.code) return;
+  const url = `${location.origin}${location.pathname}?join=${session.code}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast(T.inviteCopied);
+  } catch {
+    prompt(T.copyInvite, url);
+  }
+}
+
+/**
+ * 방 초대 URL의 QR 코드를 모달로 표시한다.
+ */
+function showQrModal() {
+  if (!session?.code) return;
+  document.getElementById('qr-modal')?.remove();
+  const url = `${location.origin}${location.pathname}?join=${session.code}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(url)}`;
+  const el = document.createElement('div');
+  el.id = 'qr-modal';
+  el.className = 'overlay';
+  el.innerHTML = `<div class="sheet qr-sheet" role="dialog" aria-modal="true">
+    <h2>${esc(T.qrTitle)}</h2>
+    <img class="qr-img" src="${qrSrc}" alt="QR Code" width="220" height="220">
+    <p>${esc(T.qrHelp)}</p>
+    <button class="btn primary" id="qr-close">${esc(T.close)}</button>
+  </div>`;
+  document.body.append(el);
+  el.addEventListener('click', (ev) => {
+    if (ev.target === el || ev.target.id === 'qr-close') el.remove();
+  });
+}
+
 function hostCodeHtml() {
   if (session?.role !== 'host') return '';
   const st = peerStatus === 'online' ? T.codeOnline : peerStatus === 'taken' ? T.codeTaken : peerStatus === 'offline' ? T.codeOffline : T.codeConnecting;
-  return `<div class="host-code"><span>${T.codeLabel}</span><b>${session.code}</b><small>${esc(st)}</small></div>`;
+  return `<div class="host-code"><span>${T.codeLabel}</span><b>${session.code}</b><small>${esc(st)}</small>
+    <div class="host-actions">
+      <button class="btn copy-invite" data-cmd="copy-invite">${esc(T.copyInvite)}</button>
+      <button class="btn copy-invite" data-cmd="show-qr">${esc(T.showQr)}</button>
+    </div></div>`;
 }
 
 function render() {
+  const isLobby = status === 'lobby';
+  document.body.classList.toggle('in-lobby', isLobby);
+  document.getElementById('hints-label')?.toggleAttribute('hidden', isLobby);
   document.getElementById('leave-btn')?.toggleAttribute('hidden', !(CONFIG.mode === 'app' && session));
-  if (status === 'lobby') {
+  if (isLobby) {
     scoreLine.textContent = '';
     app.innerHTML = lobbyHtml();
     return;
@@ -719,9 +840,30 @@ document.getElementById('leave-btn')?.addEventListener('click', (e) => {
     el.textContent = T.leave;
   }, 3000);
 });
+const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname);
 if (CONFIG.mode === 'app' && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  if (isLocalhost) {
+    navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
+  } else {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 }
 
+/**
+ * URL에 ?join=1234 초대 파라미터가 있으면 게스트 세션을 자동 설정한다.
+ */
+function applyInviteParam() {
+  if (CONFIG.mode !== 'app') return;
+  const q = new URLSearchParams(location.search);
+  const code = q.get('join');
+  if (!code || !/^\d{4}$/.test(code)) return;
+  session = { role: 'guest', code };
+  store.set('matgo-session', JSON.stringify(session));
+  q.delete('join');
+  const rest = q.toString();
+  history.replaceState(null, '', `${location.pathname}${rest ? `?${rest}` : ''}${location.hash}`);
+}
+
+applyInviteParam();
 render();
 connect();

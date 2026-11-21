@@ -9,7 +9,7 @@ export class Hub {
     this.room = room;
     this.botDelayMs = botDelayMs;
     this.log = log;
-    this.conns = [null, null, null]; // Platz → Verbindung
+    this.conns = [null, null, null, null]; // 최대 4인 자리 → 연결
     this.botTimer = null;
   }
 
@@ -99,7 +99,7 @@ export class Hub {
   reset() {
     clearTimeout(this.botTimer);
     this.room.reset();
-    for (let seat = 0; seat < 3; seat++) {
+    for (let seat = 0; seat < this.conns.length; seat++) {
       this.send(this.conns[seat], { t: 'reset' });
       this.conns[seat]?.close();
       this.conns[seat] = null;
