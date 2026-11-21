@@ -279,12 +279,9 @@ export function cardSvg(id) {
   const kind = info.bonus ? `${T.bonusName} +${info.piValue}` : info.piValue === 2 ? `2× ${T.kindShort.pi}` : T.kindShort[info.kind];
   const clip = `clip-${id}-${++clipSeq}`; // eindeutig: dieselbe Karte kann mehrfach im Bild sein
   // Hervorhebung: Lichter glänzen golden, die Vögel (Godori und die Schwalbe für Bi-Godori) leuchten blau und hüpfen
-  const fx = info.kind === 'gwang' ? ' k-gwang' : info.godori || id === 'm12-yeol' ? ' k-bird' : '';
-  const shine =
-    info.kind === 'gwang'
-      ? `<linearGradient id="${clip}-s" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff8d8" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>`
-      : '';
-  const sweep = shine ? `<g class="shine"><rect x="-10" y="-6" width="20" height="96" fill="url(#${clip}-s)" transform="skewX(-18)"/></g>` : '';
+  const fx = info.godori || id === 'm12-yeol' ? ' k-bird' : ''; // nur die Vögel leuchten; Lichter (광) ohne Extra-Effekt
+  const shine = '';
+  const sweep = '';
   const delay = fx ? ` style="--d:${(-0.9 * info.month).toFixed(1)}s"` : ''; // nicht alle im Gleichtakt
   return `<svg viewBox="0 0 60 92" class="card-svg${fx}"${delay} role="img" aria-label="${cardLabel(id)}">
 <defs><clipPath id="${clip}"><rect x="1" y="1" width="58" height="78" rx="4.5"/></clipPath>${shine}</defs>

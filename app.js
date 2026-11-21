@@ -425,7 +425,7 @@ function capturedHtml(side, ids, gukjinAs, score) {
     .join('')}</div>`;
 }
 
-function floorHtml(g) {
+function floorHtml(g, hintMonths = new Set()) {
   if (g.floorHidden) {
     return `<div class="floor hidden-floor">${Array.from({ length: g.floorHidden }, () => `<div class="stack">${back()}</div>`).join('')}<p class="floor-note">${T.floorHidden}</p></div>`;
   }
@@ -440,7 +440,7 @@ function floorHtml(g) {
       const badge = g.ppeokMonths.includes(m) ? `<span class="badge">Ppeok</span>` : '';
       const extra = g.ppeokBonus?.[m] ?? [];
       const wide = ids.length + extra.length >= 3 ? ' wide' : '';
-      return `<div class="stack${wide}" data-month="${m}" aria-label="${esc(T.month(m))}">${badge}${[...ids, ...extra].map((id) => card(id)).join('')}</div>`;
+      return `<div class="stack${wide}" data-month="${m}" aria-label="${esc(T.month(m))}">${badge}${[...ids, ...extra].map((id) => card(id, { cls: hintMonths.has(m) ? 'hint-floor' : '' })).join('')}</div>`;
     })
     .join('');
   return `<div class="floor">${stacks}</div>`;
@@ -561,6 +561,8 @@ function renderGame(g) {
         ? T.yourTurn
         : T.turnOf(nameOf(g.turn));
   const floorMonths = new Set(g.floor.map((id) => cardInfo(id).month));
+  // Monate, in denen ich eine passende Handkarte habe: dieselbe Hervorhebung auch auf den Bodenkarten
+  const hintMonths = new Set(hints && myTurn ? g.hand.filter((id) => !id.startsWith('b-')).map((id) => cardInfo(id).month).filter((m) => floorMonths.has(m)) : []);
 
   const hand = g.hand
     .map((id) => {
@@ -592,7 +594,7 @@ function renderGame(g) {
   <div class="status ${myTurn || (g.pending && g.pending.type !== 'opponentDeciding') ? 'mine' : ''}">${esc(statusText)}</div>
   ${sitOutBox}
   <section class="table">
-    ${floorHtml(g)}
+    ${floorHtml(g, hintMonths)}
     <div class="pile"><span class="card" id="pile">${cardBackSvg()}</span><span id="pile-count">${T.cardsLeft(g.pileCount)}</span></div>
   </section>
   ${inflight}
